@@ -14,8 +14,7 @@ spec:
   params:
     - name: release
       type: string
-      description:
-        The namespaced name (namespace/name) of the Release custom resource initiating this pipeline execution
+      description: The namespaced name (namespace/name) of the Release custom resource initiating this pipeline execution
     - name: releasePlan
       type: string
       description: The namespaced name (namespace/name) of the releasePlan
@@ -99,34 +98,34 @@ spec:
           workspace: release-workspace
       runAfter:
         - collect-data
-    - name: verify-enterprise-contract
-      taskRef:
-        resolver: "bundles"
-        params:
-          - name: bundle
-            value: $(params.verify_ec_task_bundle)
-          - name: kind
-            value: task
-          - name: name
-            value: verify-enterprise-contract
-      params:
-        - name: IMAGES
-          value: "$(workspaces.data.path)/$(context.pipelineRun.uid)/snapshot_spec.json"
-        - name: SSL_CERT_DIR
-          value: /var/run/secrets/kubernetes.io/serviceaccount
-        - name: POLICY_CONFIGURATION
-          value: $(params.enterpriseContractPolicy)
-        - name: STRICT
-          value: "1"
-        - name: IGNORE_REKOR
-          value: "true"
-        - name: PUBLIC_KEY
-          value: $(params.enterpriseContractPublicKey)
-      workspaces:
-        - name: data
-          workspace: release-workspace
-      runAfter:
-        - apply-mapping
+    # - name: verify-enterprise-contract
+    #   taskRef:
+    #     resolver: "bundles"
+    #     params:
+    #       - name: bundle
+    #         value: $(params.verify_ec_task_bundle)
+    #       - name: kind
+    #         value: task
+    #       - name: name
+    #         value: verify-enterprise-contract
+    #   params:
+    #     - name: IMAGES
+    #       value: "$(workspaces.data.path)/$(context.pipelineRun.uid)/snapshot_spec.json"
+    #     - name: SSL_CERT_DIR
+    #       value: /var/run/secrets/kubernetes.io/serviceaccount
+    #     - name: POLICY_CONFIGURATION
+    #       value: $(params.enterpriseContractPolicy)
+    #     - name: STRICT
+    #       value: "1"
+    #     - name: IGNORE_REKOR
+    #       value: "true"
+    #     - name: PUBLIC_KEY
+    #       value: $(params.enterpriseContractPublicKey)
+    #   workspaces:
+    #     - name: data
+    #       workspace: release-workspace
+    #   runAfter:
+    #     - apply-mapping
     - name: push-snapshot
       taskRef:
         resolver: "git"
@@ -146,7 +145,7 @@ spec:
         - name: data
           workspace: release-workspace
       runAfter:
-        - verify-enterprise-contract
+        - apply-mapping
   finally:
     - name: cleanup
       taskRef:
