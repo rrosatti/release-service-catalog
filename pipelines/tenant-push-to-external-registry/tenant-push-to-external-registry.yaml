@@ -146,6 +146,32 @@ spec:
           workspace: release-workspace
       runAfter:
         - apply-mapping
+    - name: whatever1
+      taskSpec:
+        results:
+          - name: res1
+            type: string
+        steps:
+          - name: hello
+            image: ubuntu
+            script: |
+              #!/bin/bash
+              echo -n AHA > $(results.res1.path)
+
+    - name: whatever2
+      params:
+        - name: res1
+          value: $(tasks.whatever1.results.res1)
+      taskSpec:
+        params:
+          - name: res1
+            type: string
+        steps:
+          - name: hello
+            image: ubuntu
+            script: |
+              #!/bin/bash
+              echo -n "What? $(params.res1)"
   finally:
     - name: cleanup
       taskRef:
