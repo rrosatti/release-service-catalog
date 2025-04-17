@@ -1,0 +1,18 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: platform-task
+  namespace: rh-ee-rgalvao-tenant
+spec:
+  params:
+    - name: res1
+      type: string
+    - name: platform
+      type: string
+  steps:
+    - name: hello
+      image: ubuntu
+      script: |
+        #!/bin/bash
+        echo "What? $(params.res1)"
+        echo "Platform: $(params.platform)"

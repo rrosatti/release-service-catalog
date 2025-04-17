@@ -159,6 +159,10 @@ spec:
               echo -n AHA > $(results.res1.path)
 
     - name: whatever2
+      matrix:
+        params:
+          - name: platform
+            value: ["linux", "windows", "macos"]
       params:
         - name: res1
           value: $(tasks.whatever1.results.res1)
@@ -166,12 +170,15 @@ spec:
         params:
           - name: res1
             type: string
+          - name: platform
+            type: string
         steps:
           - name: hello
             image: ubuntu
             script: |
               #!/bin/bash
-              echo -n "What? $(params.res1)"
+              echo "What? $(params.res1)"
+              echo "Platform: $(params.platform)"
   finally:
     - name: cleanup
       taskRef:
