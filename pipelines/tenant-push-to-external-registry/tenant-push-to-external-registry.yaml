@@ -158,7 +158,7 @@ spec:
               #!/bin/bash
               echo -n "Testing" > $(results.res1.path)
 
-    - name: testing-matrix
+    - name: first-matrix
       matrix:
         params:
           - name: platform
@@ -189,7 +189,9 @@ spec:
               echo "Platform: $(params.platform)"
               echo "Browser: $(params.browser)"
               echo "Node Version: $(params.node-version)"
-    - name: testing-matrix-2
+    - name: second-matrix
+      runAfter:
+        - collect-data
       matrix:
         params:
           - name: GOARCH
