@@ -147,8 +147,8 @@ spec:
       runAfter:
         - apply-mapping
     - name: second-matrix
-      # runAfter:
-      #   - collect-data
+      runAfter:
+        - collect-data
       matrix:
         params:
           - name: GOARCH
