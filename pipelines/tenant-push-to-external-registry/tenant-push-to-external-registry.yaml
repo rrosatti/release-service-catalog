@@ -189,6 +189,66 @@ spec:
               echo "Platform: $(params.platform)"
               echo "Browser: $(params.browser)"
               echo "Node Version: $(params.node-version)"
+    - name: testing-matrix-2
+      matrix:
+        params:
+          - name: GOARCH
+            value:
+              - "linux/amd64"
+              - "linux/ppc64le"
+              - "linux/s390x"
+          - name: version
+            value:
+              - "go1.17"
+              - "go1.18.1"
+        include:
+          - name: common-package
+            params:
+              - name: package
+                value: "path/to/common/package/"
+          - name: s390x-no-race
+            params:
+              - name: GOARCH
+                value: "linux/s390x"
+              - name: flags
+                value: "-cover -v"
+
+          - name: go117-context
+            params:
+              - name: version
+                value: "go1.17"
+              - name: context
+                value: "path/to/go117/context"
+          - name: non-existent-arch
+            params:
+              - name: GOARCH
+                value: "I-do-not-exist"
+      taskSpec:
+        params:
+          - name: GOARCH
+            type: string
+          - name: version
+            type: string
+            default: ""
+          - name: package
+            type: string
+            default: ""
+          - name: flags
+            type: string
+            default: ""
+          - name: context
+            type: string
+            default: ""
+        steps:
+          - name: lets-test-matrix-2
+            image: ubuntu
+            script: |
+              #!/bin/bash
+              echo "GOARCH: $(params.GOARCH)"
+              echo "version: $(params.version)"
+              echo "package: $(params.package)"
+              echo "flags: $(params.flags)"
+              echo "context: $(params.context)"
   finally:
     - name: cleanup
       taskRef:
