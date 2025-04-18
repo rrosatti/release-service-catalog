@@ -126,10 +126,29 @@ spec:
     #       workspace: release-workspace
     #   runAfter:
     #     - apply-mapping
-
-    - name: second-matrix
+    - name: push-snapshot
+      taskRef:
+        resolver: "git"
+        params:
+          - name: url
+            value: $(params.taskGitUrl)
+          - name: revision
+            value: $(params.taskGitRevision)
+          - name: pathInRepo
+            value: tasks/push-snapshot/push-snapshot.yaml
+      params:
+        - name: snapshotPath
+          value: "$(context.pipelineRun.uid)/snapshot_spec.json"
+        - name: dataPath
+          value: "$(context.pipelineRun.uid)/data.json"
+      workspaces:
+        - name: data
+          workspace: release-workspace
       runAfter:
         - apply-mapping
+    - name: second-matrix
+      # runAfter:
+      #   - collect-data
       matrix:
         params:
           - name: GOARCH
@@ -181,7 +200,8 @@ spec:
             default: ""
         steps:
           - name: lets-test-matrix-2
-            image: ubuntu
+            # image: ubuntu
+            image: quay.io/redhat-appstudio/release-service-utils:447ea0580a2cdd48b4091e1df86fab5c3f86d01c
             script: |
               #!/bin/bash
               echo "GOARCH: $(params.GOARCH)"
@@ -189,36 +209,6 @@ spec:
               echo "package: $(params.package)"
               echo "flags: $(params.flags)"
               echo "context: $(params.context)"
-    - name: wait-for-matrix
-      runAfter:
-        - second-matrix
-      taskSpec:
-        steps:
-          - name: wait
-            image: ubuntu
-            script: |
-              #!/bin/bash
-              echo "Matrix finished!"
-    - name: push-snapshot
-      taskRef:
-        resolver: "git"
-        params:
-          - name: url
-            value: $(params.taskGitUrl)
-          - name: revision
-            value: $(params.taskGitRevision)
-          - name: pathInRepo
-            value: tasks/push-snapshot/push-snapshot.yaml
-      params:
-        - name: snapshotPath
-          value: "$(context.pipelineRun.uid)/snapshot_spec.json"
-        - name: dataPath
-          value: "$(context.pipelineRun.uid)/data.json"
-      workspaces:
-        - name: data
-          workspace: release-workspace
-      runAfter:
-        - wait-for-matrix
     # - name: produce-results
     #   taskSpec:
     #     results:
