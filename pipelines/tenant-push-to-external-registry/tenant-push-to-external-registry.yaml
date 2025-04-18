@@ -126,72 +126,10 @@ spec:
     #       workspace: release-workspace
     #   runAfter:
     #     - apply-mapping
-    - name: push-snapshot
-      taskRef:
-        resolver: "git"
-        params:
-          - name: url
-            value: $(params.taskGitUrl)
-          - name: revision
-            value: $(params.taskGitRevision)
-          - name: pathInRepo
-            value: tasks/push-snapshot/push-snapshot.yaml
-      params:
-        - name: snapshotPath
-          value: "$(context.pipelineRun.uid)/snapshot_spec.json"
-        - name: dataPath
-          value: "$(context.pipelineRun.uid)/data.json"
-      workspaces:
-        - name: data
-          workspace: release-workspace
-      runAfter:
-        - apply-mapping
-    - name: produce-results
-      taskSpec:
-        results:
-          - name: res1
-            type: string
-        steps:
-          - name: hello
-            image: ubuntu
-            script: |
-              #!/bin/bash
-              echo -n "Testing" > $(results.res1.path)
 
-    - name: first-matrix
-      matrix:
-        params:
-          - name: platform
-            value: ["linux", "windows", "macos"]
-          - name: browser
-            value: ["chrome", "firefox"]
-          - name: node-version
-            value: ["16.0", "21.0"]
-      params:
-        - name: res1
-          value: $(tasks.produce-results.results.res1)
-      taskSpec:
-        params:
-          - name: res1
-            type: string
-          - name: platform
-            type: string
-          - name: browser
-            type: string
-          - name: node-version
-            type: string
-        steps:
-          - name: lets-test-a-matrix
-            image: ubuntu
-            script: |
-              #!/bin/bash
-              echo "This one came as a result from 'produce-results' task: $(params.res1)"
-              echo "Platform: $(params.platform)"
-              echo "Browser: $(params.browser)"
-              echo "Node Version: $(params.node-version)"
     - name: second-matrix
       runAfter:
-        - collect-data
+        - apply-mapping
       matrix:
         params:
           - name: GOARCH
@@ -251,6 +189,141 @@ spec:
               echo "package: $(params.package)"
               echo "flags: $(params.flags)"
               echo "context: $(params.context)"
+    - name: wait-for-matrix
+      runAfter:
+        - second-matrix
+      taskSpec:
+        steps:
+          - name: wait
+            image: ubuntu
+            script: |
+              #!/bin/bash
+              echo "Matrix finished!"
+    - name: push-snapshot
+      taskRef:
+        resolver: "git"
+        params:
+          - name: url
+            value: $(params.taskGitUrl)
+          - name: revision
+            value: $(params.taskGitRevision)
+          - name: pathInRepo
+            value: tasks/push-snapshot/push-snapshot.yaml
+      params:
+        - name: snapshotPath
+          value: "$(context.pipelineRun.uid)/snapshot_spec.json"
+        - name: dataPath
+          value: "$(context.pipelineRun.uid)/data.json"
+      workspaces:
+        - name: data
+          workspace: release-workspace
+      runAfter:
+        - wait-for-matrix
+    # - name: produce-results
+    #   taskSpec:
+    #     results:
+    #       - name: res1
+    #         type: string
+    #     steps:
+    #       - name: hello
+    #         image: ubuntu
+    #         script: |
+    #           #!/bin/bash
+    #           echo -n "Testing" > $(results.res1.path)
+
+    # - name: first-matrix
+    #   matrix:
+    #     params:
+    #       - name: platform
+    #         value: ["linux", "windows", "macos"]
+    #       - name: browser
+    #         value: ["chrome", "firefox"]
+    #       - name: node-version
+    #         value: ["16.0", "21.0"]
+    #   params:
+    #     - name: res1
+    #       value: $(tasks.produce-results.results.res1)
+    #   taskSpec:
+    #     params:
+    #       - name: res1
+    #         type: string
+    #       - name: platform
+    #         type: string
+    #       - name: browser
+    #         type: string
+    #       - name: node-version
+    #         type: string
+    #     steps:
+    #       - name: lets-test-a-matrix
+    #         image: ubuntu
+    #         script: |
+    #           #!/bin/bash
+    #           echo "This one came as a result from 'produce-results' task: $(params.res1)"
+    #           echo "Platform: $(params.platform)"
+    #           echo "Browser: $(params.browser)"
+    #           echo "Node Version: $(params.node-version)"
+    # - name: second-matrix
+    #   runAfter:
+    #     - collect-data
+    #   matrix:
+    #     params:
+    #       - name: GOARCH
+    #         value:
+    #           - "linux/amd64"
+    #           - "linux/ppc64le"
+    #           - "linux/s390x"
+    #       - name: version
+    #         value:
+    #           - "go1.17"
+    #           - "go1.18.1"
+    #     include:
+    #       - name: common-package
+    #         params:
+    #           - name: package
+    #             value: "path/to/common/package/"
+    #       - name: s390x-no-race
+    #         params:
+    #           - name: GOARCH
+    #             value: "linux/s390x"
+    #           - name: flags
+    #             value: "-cover -v"
+
+    #       - name: go117-context
+    #         params:
+    #           - name: version
+    #             value: "go1.17"
+    #           - name: context
+    #             value: "path/to/go117/context"
+    #       - name: non-existent-arch
+    #         params:
+    #           - name: GOARCH
+    #             value: "I-do-not-exist"
+    #   taskSpec:
+    #     params:
+    #       - name: GOARCH
+    #         type: string
+    #       - name: version
+    #         type: string
+    #         default: ""
+    #       - name: package
+    #         type: string
+    #         default: ""
+    #       - name: flags
+    #         type: string
+    #         default: ""
+    #       - name: context
+    #         type: string
+    #         default: ""
+    #     steps:
+    #       - name: lets-test-matrix-2
+    #         image: ubuntu
+    #         script: |
+    #           #!/bin/bash
+    #           echo "GOARCH: $(params.GOARCH)"
+    #           echo "version: $(params.version)"
+    #           echo "package: $(params.package)"
+    #           echo "flags: $(params.flags)"
+    #           echo "context: $(params.context)"
   finally:
     - name: cleanup
       taskRef:
