@@ -146,7 +146,7 @@ spec:
           workspace: release-workspace
       runAfter:
         - apply-mapping
-    - name: second-matrix
+    - name: matrix-example
       runAfter:
         - collect-data
       matrix:
