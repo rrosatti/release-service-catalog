@@ -1,0 +1,48 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: minimal-release-test
+  annotations:
+    tekton.dev/tags: release
+  labels:
+    appstudio.openshift.io/release-pipeline: "true"
+spec:
+  description: Minimal pipeline for testing ReleasePlan integration
+  params:
+    - name: release
+      type: string
+    - name: releasePlan
+      type: string
+    - name: snapshot
+      type: string
+  workspaces:
+    - name: release-workspace
+  tasks:
+    - name: hello
+      taskSpec:
+        params:
+          - name: release
+            type: string
+          - name: releasePlan
+            type: string
+          - name: snapshot
+            type: string
+        steps:
+          - name: say-hello
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Hello from a minimal pipeline!"
+              echo "Release: $(params.release)"
+              echo "ReleasePlan: $(params.releasePlan)"
+              echo "Snapshot: $(params.snapshot)"
+    - name: goodbye
+      runAfter:
+        - hello
+      taskSpec:
+        steps:
+          - name: say-goodbye
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Goodbye from a minimal pipeline!"
