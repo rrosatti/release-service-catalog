@@ -10,6 +10,9 @@ spec:
   description: Minimal pipeline for testing ReleasePlan integration
   workspaces:
     - name: release-workspace
+  results:
+    - name: TEST_OUTPUT
+      value: "$(tasks.test-output-simulate.results.TEST_OUTPUT)"
   tasks:
     - name: hello
       taskSpec:
@@ -19,6 +22,12 @@ spec:
             script: |
               #!/bin/sh
               echo "Hello from a minimal pipeline!"
+          # - name: fail-test
+          #   image: registry.access.redhat.com/ubi8/ubi-minimal
+          #   script: |
+          #     #!/bin/sh
+          #     echo "Simulating test failure"
+          #     exit 1  # Simulate failure
     - name: goodbye
       runAfter:
         - hello
@@ -29,3 +38,29 @@ spec:
             script: |
               #!/bin/sh
               echo "Goodbye from a minimal pipeline!"
+    - name: test-output-simulate
+      runAfter:
+        - goodbye
+      taskSpec:
+        results:
+          - name: TEST_OUTPUT
+            description: "Test result output"
+        steps:
+          - name: simulate-error
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              # echo "ERROR: Simulated test failure" > $(results.TEST_OUTPUT.path)
+              timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+              cat <<EOF > $(results.TEST_OUTPUT.path)
+              {
+                "result": "ERROR",
+                "namespace": "example-namespace",
+                "timestamp": "$timestamp",
+                "successes": 0,
+                "failures": 1,
+                "warnings": 0,
+                "note": "Simulated failure for testing TEST_OUTPUT reporting"
+              }
+              EOF
+              exit 0  # Task exits with success, but logs an error in TEST_OUTPUT
