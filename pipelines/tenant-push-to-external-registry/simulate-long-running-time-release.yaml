@@ -12,7 +12,7 @@ spec:
     - name: release-workspace
   results:
     - name: TEST_OUTPUT
-      value: "$(tasks.test-output-simulate.results.TEST_OUTPUT)"
+      value: "$(tasks.test-output.results.TEST_OUTPUT)"
   tasks:
     - name: hello
       taskSpec:
@@ -48,31 +48,44 @@ spec:
             script: |
               echo "This task should be skipped!"
 
-    - name: test-output-simulate
+    - name: test-output
       runAfter:
         - conditionally-skipped-task
       taskSpec:
         results:
           - name: TEST_OUTPUT
-            description: "Test result output"
         steps:
-          - name: simulate-error
+          - name: output-result
             image: registry.access.redhat.com/ubi8/ubi-minimal
             script: |
               #!/bin/sh
-              timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-              cat <<EOF > $(results.TEST_OUTPUT.path)
-              {
-                "result": "ERROR",
-                "namespace": "example-namespace",
-                "timestamp": "$timestamp",
-                "successes": 0,
-                "failures": 1,
-                "warnings": 0,
-                "note": "Simulated failure for testing TEST_OUTPUT reporting"
-              }
-              EOF
-              exit 0
+              echo '{"result": "SUCCESS"}' > $(results.TEST_OUTPUT.path)
+
+    # - name: test-output-simulate
+    #   runAfter:
+    #     - conditionally-skipped-task
+    #   taskSpec:
+    #     results:
+    #       - name: TEST_OUTPUT
+    #         description: "Test result output"
+    #     steps:
+    #       - name: simulate-error
+    #         image: registry.access.redhat.com/ubi8/ubi-minimal
+    #         script: |
+    #           #!/bin/sh
+    #           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    #           cat <<EOF > $(results.TEST_OUTPUT.path)
+    #           {
+    #             "result": "ERROR",
+    #             "namespace": "example-namespace",
+    #             "timestamp": "$timestamp",
+    #             "successes": 0,
+    #             "failures": 1,
+    #             "warnings": 0,
+    #             "note": "Simulated failure for testing TEST_OUTPUT reporting"
+    #           }
+    #           EOF
+    #           exit 0
   finally:
     - name: long-finalizer
       taskSpec:
