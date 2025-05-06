@@ -87,13 +87,11 @@ spec:
     #           EOF
     #           exit 0
   finally:
-    - name: long-finalizer
+    - name: bad-final-task
       taskSpec:
         steps:
-          - name: final-cleanup
-            image: registry.access.redhat.com/ubi8/ubi-minimal
+          - name: oops
+            image: "nonexistent/image:latest" # This image doesn't exist
             script: |
               #!/bin/sh
-              echo "Starting long final task..."
-              sleep 30  # Simulate long-running final step
-              echo "Final task done."
+              echo "This will never run"
