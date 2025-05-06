@@ -87,11 +87,34 @@ spec:
     #           EOF
     #           exit 0
   finally:
-    - name: bad-final-task
+    # - name: long-finalizer
+    #   taskSpec:
+    #     steps:
+    #       - name: final-cleanup
+    #         image: registry.access.redhat.com/ubi8/ubi-minimal
+    #         script: |
+    #           #!/bin/sh
+    #           echo "Starting long final task..."
+    #           sleep 30  # Simulate long-running final step
+    #           echo "Final task done."
+
+    # - name: bad-final-task
+    #   taskSpec:
+    #     steps:
+    #       - name: oops
+    #         image: "nonexistent/image:latest" # This image doesn't exist
+    #         script: |
+    #           #!/bin/sh
+    #           echo "This will never run"
+    - name: sneaky-final
+      when:
+        - input: "false"
+          operator: in
+          values: ["true"]
       taskSpec:
         steps:
-          - name: oops
-            image: "nonexistent/image:latest" # This image doesn't exist
+          - name: sneaky-step
+            image: registry.access.redhat.com/ubi8/ubi-minimal
             script: |
               #!/bin/sh
-              echo "This will never run"
+              echo "This should never run"
