@@ -1,4 +1,21 @@
 apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: idle-final-task
+spec:
+  steps:
+    - name: wait
+      image: registry.access.redhat.com/ubi8/ubi-minimal
+      script: |
+        #!/bin/sh
+        echo "Trying to run a final task..."
+        sleep 30
+      resources:
+        requests:
+          memory: "2Ti"
+          cpu: "999"
+---
+apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: simulate-long-running-time-release
@@ -106,15 +123,20 @@ spec:
     #         script: |
     #           #!/bin/sh
     #           echo "This will never run"
-    - name: sneaky-final
-      when:
-        - input: "false"
-          operator: in
-          values: ["true"]
-      taskSpec:
-        steps:
-          - name: sneaky-step
-            image: registry.access.redhat.com/ubi8/ubi-minimal
-            script: |
-              #!/bin/sh
-              echo "This should never run"
+
+    # - name: sneaky-final
+    #   when:
+    #     - input: "false"
+    #       operator: in
+    #       values: ["true"]
+    #   taskSpec:
+    #     steps:
+    #       - name: sneaky-step
+    #         image: registry.access.redhat.com/ubi8/ubi-minimal
+    #         script: |
+    #           #!/bin/sh
+    #           echo "This should never run"
+
+    - name: idle-final-task
+      taskRef:
+        name: idle-final-task
