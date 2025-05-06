@@ -1,0 +1,72 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: simulate-long-running-time-release
+  annotations:
+    tekton.dev/tags: release
+  labels:
+    appstudio.openshift.io/release-pipeline: "true"
+spec:
+  description: Minimal pipeline for testing ReleasePlan integration
+  workspaces:
+    - name: release-workspace
+  results:
+    - name: TEST_OUTPUT
+      value: "$(tasks.test-output-simulate.results.TEST_OUTPUT)"
+  tasks:
+    - name: hello
+      taskSpec:
+        steps:
+          - name: say-hello
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Hello from a minimal pipeline!"
+
+    - name: goodbye
+      runAfter:
+        - hello
+      taskSpec:
+        steps:
+          - name: say-goodbye
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Goodbye from a minimal pipeline!"
+
+    - name: test-output-simulate
+      runAfter:
+        - goodbye
+      taskSpec:
+        results:
+          - name: TEST_OUTPUT
+            description: "Test result output"
+        steps:
+          - name: simulate-error
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+              cat <<EOF > $(results.TEST_OUTPUT.path)
+              {
+                "result": "ERROR",
+                "namespace": "example-namespace",
+                "timestamp": "$timestamp",
+                "successes": 0,
+                "failures": 1,
+                "warnings": 0,
+                "note": "Simulated failure for testing TEST_OUTPUT reporting"
+              }
+              EOF
+              exit 0
+  finally:
+    - name: long-finalizer
+      taskSpec:
+        steps:
+          - name: final-cleanup
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Starting long final task..."
+              sleep 30  # Simulate long-running final step
+              echo "Final task done."
