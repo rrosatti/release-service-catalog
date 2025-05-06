@@ -1,19 +1,19 @@
-apiVersion: tekton.dev/v1
-kind: Task
-metadata:
-  name: idle-final-task
-spec:
-  steps:
-    - name: wait
-      image: registry.access.redhat.com/ubi8/ubi-minimal
-      script: |
-        #!/bin/sh
-        echo "Trying to run a final task..."
-        sleep 30
-      resources:
-        requests:
-          memory: "2Ti"
-          cpu: "999"
+# apiVersion: tekton.dev/v1
+# kind: Task
+# metadata:
+#   name: idle-final-task
+# spec:
+#   steps:
+#     - name: wait
+#       image: registry.access.redhat.com/ubi8/ubi-minimal
+#       script: |
+#         #!/bin/sh
+#         echo "Trying to run a final task..."
+#         sleep 30
+#       resources:
+#         requests:
+#           memory: "2Ti"
+#           cpu: "999"
 ---
 apiVersion: tekton.dev/v1
 kind: Pipeline
@@ -104,16 +104,16 @@ spec:
     #           EOF
     #           exit 0
   finally:
-    # - name: long-finalizer
-    #   taskSpec:
-    #     steps:
-    #       - name: final-cleanup
-    #         image: registry.access.redhat.com/ubi8/ubi-minimal
-    #         script: |
-    #           #!/bin/sh
-    #           echo "Starting long final task..."
-    #           sleep 30  # Simulate long-running final step
-    #           echo "Final task done."
+    - name: long-finalizer
+      taskSpec:
+        steps:
+          - name: final-cleanup
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Starting long final task..."
+              sleep 600  # Simulate long-running final step
+              echo "Final task done."
 
     # - name: bad-final-task
     #   taskSpec:
@@ -137,6 +137,6 @@ spec:
     #           #!/bin/sh
     #           echo "This should never run"
 
-    - name: idle-final-task
-      taskRef:
-        name: idle-final-task
+    # - name: idle-final-task
+    #   taskRef:
+    #     name: idle-final-task
