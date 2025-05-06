@@ -14,6 +14,18 @@
 #         requests:
 #           memory: "2Ti"
 #           cpu: "999"
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: idle-final-task
+spec:
+  params:
+    - name: enable-finalizer
+  steps:
+    - name: maybe-idle
+      image: registry.access.redhat.com/ubi8/ubi-minimal
+      script: |
+        sleep 10
 ---
 apiVersion: tekton.dev/v1
 kind: Pipeline
@@ -25,6 +37,10 @@ metadata:
     appstudio.openshift.io/release-pipeline: "true"
 spec:
   description: Minimal pipeline for testing ReleasePlan integration
+  params:
+    - name: enable-finalizer
+      type: string
+      default: "true"
   workspaces:
     - name: release-workspace
   results:
@@ -103,17 +119,17 @@ spec:
     #           }
     #           EOF
     #           exit 0
-  finally:
-    - name: long-finalizer
-      taskSpec:
-        steps:
-          - name: final-cleanup
-            image: registry.access.redhat.com/ubi8/ubi-minimal
-            script: |
-              #!/bin/sh
-              echo "Starting long final task..."
-              sleep 600  # Simulate long-running final step
-              echo "Final task done."
+    # finally:
+    #   - name: long-finalizer
+    #     taskSpec:
+    #       steps:
+    #         - name: final-cleanup
+    #           image: registry.access.redhat.com/ubi8/ubi-minimal
+    #           script: |
+    #             #!/bin/sh
+    #             echo "Starting long final task..."
+    #             sleep 600  # Simulate long-running final step
+    #             echo "Final task done."
 
     # - name: bad-final-task
     #   taskSpec:
@@ -140,3 +156,16 @@ spec:
     # - name: idle-final-task
     #   taskRef:
     #     name: idle-final-task
+  finally:
+    - name: idle-final-task
+      when:
+        - input: "$(params.enable-finalizer)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: enable-finalizer
+          value: "$(params.enable-finalizer)"
+      taskRef:
+        name: idle-final-task
+      taskRunTemplate:
+        serviceAccountName: does-not-exist
