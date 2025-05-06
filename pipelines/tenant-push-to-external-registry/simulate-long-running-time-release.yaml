@@ -34,9 +34,23 @@ spec:
               #!/bin/sh
               echo "Goodbye from a minimal pipeline!"
 
-    - name: test-output-simulate
+    - name: conditionally-skipped-task
       runAfter:
         - goodbye
+      when:
+        - input: "false"
+          operator: in
+          values: ["true"]
+      taskSpec:
+        steps:
+          - name: should-not-run
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              echo "This task should be skipped!"
+
+    - name: test-output-simulate
+      runAfter:
+        - conditionally-skipped-task
       taskSpec:
         results:
           - name: TEST_OUTPUT
