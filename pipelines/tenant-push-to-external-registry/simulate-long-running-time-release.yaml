@@ -96,6 +96,22 @@ spec:
             script: |
               #!/bin/sh
               echo '{"result": "SUCCESS"}' > $(results.TEST_OUTPUT.path)
+    - name: task-with-high-resource-requirements
+      taskSpec:
+        steps:
+          - name: run-with-high-memory
+            image: busybox:latest
+            resources:
+              requests:
+                memory: "10Gi" # Request more memory than the node has available
+                cpu: "1"
+              limits:
+                memory: "10Gi" # Set a high memory limit
+                cpu: "1"
+            script: |
+              #!/bin/sh
+              echo "Simulating high memory usage to exceed node resources"
+              sleep 60
     # - name: task-with-no-existing-image
     #   runAfter:
     #     - test-output
@@ -141,17 +157,17 @@ spec:
     #           }
     #           EOF
     #           exit 0
-  # finally:
-  #   - name: long-finalizer
-  #     taskSpec:
-  #       steps:
-  #         - name: final-cleanup
-  #           image: registry.access.redhat.com/ubi8/ubi-minimal
-  #           script: |
-  #             #!/bin/sh
-  #             echo "Starting long final task..."
-  #             sleep 600  # Simulate long-running final step
-  #             echo "Final task done."
+  finally:
+    - name: long-finalizer
+      taskSpec:
+        steps:
+          - name: final-cleanup
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Starting long final task..."
+              sleep 600  # Simulate long-running final step
+              echo "Final task done."
 
   # - name: bad-final-task
   #   taskSpec:
@@ -219,15 +235,15 @@ spec:
   #           image: busybox:doesnotexist
   #           script: |
   #             echo "This will never run"
-  finally:
-    - name: pending-forever
-      taskSpec:
-        steps:
-          - name: pending-simulator
-            image: busybox
-            script: |
-              #!/bin/sh
-              echo "Simulating pending state by waiting on a file that never appears..."
-              while [ ! -f /tmp/continue ]; do
-                sleep 10
-              done
+  # finally:
+  #   - name: pending-forever
+  #     taskSpec:
+  #       steps:
+  #         - name: pending-simulator
+  #           image: busybox
+  #           script: |
+  #             #!/bin/sh
+  #             echo "Simulating pending state by waiting on a file that never appears..."
+  #             while [ ! -f /tmp/continue ]; do
+  #               sleep 10
+  #             done
