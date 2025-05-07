@@ -82,7 +82,25 @@ spec:
           #     }
           #     EOF
           #     exit 0
-          - name: simulate-warning
+          # - name: simulate-warning
+          #   image: registry.access.redhat.com/ubi8/ubi-minimal
+          #   script: |
+          #     #!/bin/sh
+
+          #     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          #     cat <<EOF > $(results.TEST_OUTPUT.path)
+          #     {
+          #       "result": "WARNING",
+          #       "namespace": "example-namespace",
+          #       "timestamp": "$timestamp",
+          #       "successes": 0,
+          #       "failures": 1,
+          #       "warnings": 0,
+          #       "note": "Simulated WARNING for testing TEST_OUTPUT reporting"
+          #     }
+          #     EOF
+          #     exit 0
+          - name: simulate-failure
             image: registry.access.redhat.com/ubi8/ubi-minimal
             script: |
               #!/bin/sh
@@ -90,13 +108,13 @@ spec:
               timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
               cat <<EOF > $(results.TEST_OUTPUT.path)
               {
-                "result": "WARNING",
+                "result": "FAILURE",
                 "namespace": "example-namespace",
                 "timestamp": "$timestamp",
                 "successes": 0,
                 "failures": 1,
                 "warnings": 0,
-                "note": "Simulated WARNING for testing TEST_OUTPUT reporting"
+                "note": "Simulated FAILURE for testing TEST_OUTPUT reporting"
               }
               EOF
               exit 0
