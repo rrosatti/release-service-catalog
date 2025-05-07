@@ -211,11 +211,23 @@ spec:
   #             else
   #               echo "Finalizer disabled. Skipping wait."
   #             fi
+  # finally:
+  #   - name: task-with-no-existing-image
+  #     taskSpec:
+  #       steps:
+  #         - name: maybe-broken
+  #           image: busybox:doesnotexist
+  #           script: |
+  #             echo "This will never run"
   finally:
-    - name: task-with-no-existing-image
+    - name: pending-forever
       taskSpec:
         steps:
-          - name: maybe-broken
-            image: busybox:doesnotexist
+          - name: pending-simulator
+            image: busybox
             script: |
-              echo "This will never run"
+              #!/bin/sh
+              echo "Simulating pending state by waiting on a file that never appears..."
+              while [ ! -f /tmp/continue ]; do
+                sleep 10
+              done
