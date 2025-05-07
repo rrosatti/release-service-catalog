@@ -41,6 +41,9 @@ spec:
     - name: enable-finalizer
       type: string
       default: "true"
+    - name: enable-wait
+      type: string
+      default: "true"
   workspaces:
     - name: release-workspace
   results:
@@ -94,15 +97,15 @@ spec:
               #!/bin/sh
               echo '{"result": "SUCCESS"}' > $(results.TEST_OUTPUT.path)
 
-    - name: no-op-output
-      runAfter:
-        - test-output
-      taskSpec:
-        steps:
-          - name: no-op
-            image: busybox:latest
-            script: |
-              tail -f /dev/null  # Wait forever until manually stopped
+    # - name: no-op-output
+    #   runAfter:
+    #     - test-output
+    #   taskSpec:
+    #     steps:
+    #       - name: no-op
+    #         image: busybox:latest
+    #         script: |
+    #           tail -f /dev/null  # Wait forever until manually stopped
 
     # - name: test-output-simulate
     #   runAfter:
@@ -129,43 +132,43 @@ spec:
     #           }
     #           EOF
     #           exit 0
-  finally:
-    - name: long-finalizer
-      taskSpec:
-        steps:
-          - name: final-cleanup
-            image: registry.access.redhat.com/ubi8/ubi-minimal
-            script: |
-              #!/bin/sh
-              echo "Starting long final task..."
-              sleep 600  # Simulate long-running final step
-              echo "Final task done."
+  # finally:
+  #   - name: long-finalizer
+  #     taskSpec:
+  #       steps:
+  #         - name: final-cleanup
+  #           image: registry.access.redhat.com/ubi8/ubi-minimal
+  #           script: |
+  #             #!/bin/sh
+  #             echo "Starting long final task..."
+  #             sleep 600  # Simulate long-running final step
+  #             echo "Final task done."
 
-    # - name: bad-final-task
-    #   taskSpec:
-    #     steps:
-    #       - name: oops
-    #         image: "nonexistent/image:latest" # This image doesn't exist
-    #         script: |
-    #           #!/bin/sh
-    #           echo "This will never run"
+  # - name: bad-final-task
+  #   taskSpec:
+  #     steps:
+  #       - name: oops
+  #         image: "nonexistent/image:latest" # This image doesn't exist
+  #         script: |
+  #           #!/bin/sh
+  #           echo "This will never run"
 
-    # - name: sneaky-final
-    #   when:
-    #     - input: "false"
-    #       operator: in
-    #       values: ["true"]
-    #   taskSpec:
-    #     steps:
-    #       - name: sneaky-step
-    #         image: registry.access.redhat.com/ubi8/ubi-minimal
-    #         script: |
-    #           #!/bin/sh
-    #           echo "This should never run"
+  # - name: sneaky-final
+  #   when:
+  #     - input: "false"
+  #       operator: in
+  #       values: ["true"]
+  #   taskSpec:
+  #     steps:
+  #       - name: sneaky-step
+  #         image: registry.access.redhat.com/ubi8/ubi-minimal
+  #         script: |
+  #           #!/bin/sh
+  #           echo "This should never run"
 
-    # - name: idle-final-task
-    #   taskRef:
-    #     name: idle-final-task
+  # - name: idle-final-task
+  #   taskRef:
+  #     name: idle-final-task
   # finally:
   #   - name: idle-final-task
   #     when:
@@ -179,3 +182,23 @@ spec:
   #       name: idle-final-task
   # taskRunTemplate:
   #   serviceAccountName: does-not-exist
+  finally:
+    - name: wait-for-manual-finish
+      params:
+        - name: enable-wait
+          value: "$(params.enable-finalizer)"
+      taskSpec:
+        params:
+          - name: enable-wait
+            type: string
+        steps:
+          - name: maybe-wait
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              if [ "$(params.enable-wait)" = "true" ]; then
+                echo "Finalizer enabled. Waiting forever..."
+                tail -f /dev/null
+              else
+                echo "Finalizer disabled. Skipping wait."
+              fi
