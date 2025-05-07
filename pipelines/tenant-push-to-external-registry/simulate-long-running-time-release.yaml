@@ -96,6 +96,15 @@ spec:
             script: |
               #!/bin/sh
               echo '{"result": "SUCCESS"}' > $(results.TEST_OUTPUT.path)
+    # - name: task-with-no-existing-image
+    #   runAfter:
+    #     - test-output
+    #   taskSpec:
+    #     steps:
+    #       - name: broken
+    #         image: busybox:doesnotexist
+    #         script: |
+    #           echo "This will never run"
 
     # - name: no-op-output
     #   runAfter:
@@ -182,23 +191,31 @@ spec:
   #       name: idle-final-task
   # taskRunTemplate:
   #   serviceAccountName: does-not-exist
+  # finally:
+  #   - name: wait-for-manual-finish
+  #     params:
+  #       - name: enable-wait
+  #         value: "$(params.enable-finalizer)"
+  #     taskSpec:
+  #       params:
+  #         - name: enable-wait
+  #           type: string
+  #       steps:
+  #         - name: maybe-wait
+  #           image: registry.access.redhat.com/ubi8/ubi-minimal
+  #           script: |
+  #             #!/bin/sh
+  #             if [ "$(params.enable-wait)" = "true" ]; then
+  #               echo "Finalizer enabled. Waiting forever..."
+  #               tail -f /dev/null
+  #             else
+  #               echo "Finalizer disabled. Skipping wait."
+  #             fi
   finally:
-    - name: wait-for-manual-finish
-      params:
-        - name: enable-wait
-          value: "$(params.enable-finalizer)"
+    - name: task-with-no-existing-image
       taskSpec:
-        params:
-          - name: enable-wait
-            type: string
         steps:
-          - name: maybe-wait
-            image: registry.access.redhat.com/ubi8/ubi-minimal
+          - name: maybe-broken
+            image: busybox:doesnotexist
             script: |
-              #!/bin/sh
-              if [ "$(params.enable-wait)" = "true" ]; then
-                echo "Finalizer enabled. Waiting forever..."
-                tail -f /dev/null
-              else
-                echo "Finalizer disabled. Skipping wait."
-              fi
+              echo "This will never run"
