@@ -142,9 +142,9 @@ spec:
         steps:
           - name: wait
             image: busybox
-            volumeMounts:
-              - name: missing-volume
-                mountPath: /fake
+            # volumeMounts:
+            #   - name: missing-volume
+            #     mountPath: /fake
             script: |
               #!/bin/sh
               echo "Trying to simulate pending"
