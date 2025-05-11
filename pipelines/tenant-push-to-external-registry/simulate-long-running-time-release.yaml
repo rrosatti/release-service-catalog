@@ -154,6 +154,8 @@ spec:
         #       name: definitely-does-not-exist
         volumes:
           - name: big-vol
+            persistentVolumeClaim:
+              claimName: does-not-exist
             emptyDir:
               sizeLimit: "20Ti"
     # - name: task-with-no-existing-image
