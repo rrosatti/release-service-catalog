@@ -111,20 +111,21 @@ spec:
             script: |
               #!/bin/sh
               echo '{"result": "SUCCESS"}' > $(results.TEST_OUTPUT.path)
-    - name: task-with-high-resource-requirements
-      runAfter:
-        - test-output
-      taskSpec:
-        steps:
-          - name: run-with-high-memory
-            image: busybox:latest
-            script: |
-              #!/bin/sh
-              echo "Simulating high memory usage to exceed node resources"
-              sleep 60
+    # - name: task-with-high-resource-requirements
+    #   runAfter:
+    #     - test-output
+    #   taskSpec:
+    #     steps:
+    #       - name: run-with-high-memory
+    #         image: busybox:latest
+    #         script: |
+    #           #!/bin/sh
+    #           echo "Simulating high memory usage to exceed node resources"
+    #           sleep 60
     - name: simulate-pending
       runAfter:
-        - task-with-high-resource-requirements
+        # - task-with-high-resource-requirements
+        - test-output
       taskSpec:
         steps:
           - name: wait-forever
