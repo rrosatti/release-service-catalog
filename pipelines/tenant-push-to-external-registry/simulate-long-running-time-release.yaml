@@ -26,21 +26,21 @@
 #       image: registry.access.redhat.com/ubi8/ubi-minimal
 #       script: |
 #         sleep 10
-apiVersion: tekton.dev/v1
-kind: Task
-metadata:
-  name: simulate-pending-2
-spec:
-  steps:
-    - name: wait-forever
-      image: busybox:latest
-      resources:
-        requests:
-          memory: "500Gi"
-          cpu: "100"
-      script: |
-        #!/bin/sh
-        sleep 9999
+# apiVersion: tekton.dev/v1
+# kind: Task
+# metadata:
+#   name: simulate-pending-2
+# spec:
+#   steps:
+#     - name: wait-forever
+#       image: busybox:latest
+#       resources:
+#         requests:
+#           memory: "500Gi"
+#           cpu: "100"
+#       script: |
+#         #!/bin/sh
+#         sleep 9999
 ---
 apiVersion: tekton.dev/v1
 kind: Pipeline
@@ -134,10 +134,26 @@ spec:
               echo "This should never run"
               sleep 9999
     - name: simulate-pending-2
-      taskRef:
-        name: simulate-pending-2
       runAfter:
         - simulate-pending
+      taskSpec:
+        steps:
+          - name: wait
+            image: busybox
+            volumeMounts:
+              - name: missing-volume
+                mountPath: /fake
+            script: |
+              #!/bin/sh
+              echo "Trying to simulate pending"
+        # volumes:
+        #   - name: missing-volume
+        #     configMap:
+        #       name: definitely-does-not-exist
+        volumes:
+          - name: big-vol
+            emptyDir:
+              sizeLimit: "500Gi"
     # - name: task-with-no-existing-image
     #   runAfter:
     #     - test-output
