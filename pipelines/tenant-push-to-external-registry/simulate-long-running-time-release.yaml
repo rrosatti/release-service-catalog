@@ -107,11 +107,17 @@ spec:
               #!/bin/sh
               echo "Simulating high memory usage to exceed node resources"
               sleep 60
-        podTemplate:
-          tolerations:
-            - key: "nonexistent-taint"
-              operator: "Exists"
-              effect: "NoSchedule"
+    - name: simulate-pending
+      runAfter:
+        - task-with-high-resource-requirements
+      taskSpec:
+        steps:
+          - name: wait-forever
+            image: busybox:doesnotexist
+            script: |
+              #!/bin/sh
+              echo "This should never run"
+              sleep 9999
     # - name: task-with-no-existing-image
     #   runAfter:
     #     - test-output
