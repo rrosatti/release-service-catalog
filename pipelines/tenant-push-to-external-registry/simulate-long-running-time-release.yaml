@@ -155,7 +155,7 @@ spec:
         volumes:
           - name: big-vol
             emptyDir:
-              sizeLimit: "500Gi"
+              sizeLimit: "20Ti"
     # - name: task-with-no-existing-image
     #   runAfter:
     #     - test-output
