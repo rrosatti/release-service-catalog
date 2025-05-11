@@ -296,41 +296,72 @@
 #   #               sleep 10
 #   #             done
 apiVersion: tekton.dev/v1
-kind: PipelineRun
+kind: Pipeline
 metadata:
-  name: simulate-pending-run
+  name: simulate-long-running-time-release
+  annotations:
+    tekton.dev/tags: release
+  labels:
+    appstudio.openshift.io/release-pipeline: "true"
 spec:
-  pipelineRef:
-    name: simulate-long-running-time-release
-  resources:
-    - name: big-vol
-      resourceRef:
-        name: big-vol
-  taskRuns:
-    simulate-pending-2:
-      taskRef:
-        name: simulate-pending-2
-      resources:
-        inputs:
-          - name: big-vol
-            resourceRef:
-              name: big-vol
-      podTemplate:
-        spec:
-          containers:
-            - name: wait
-              image: busybox
-              resources:
-                requests:
-                  memory: "100Gi" # Large memory request to force Pending state
-                  cpu: "1000m" # High CPU request
-              volumeMounts:
-                - name: big-vol
-                  mountPath: /fake
-              script: |
-                #!/bin/sh
-                echo "Trying to simulate pending"
-  volumes:
-    - name: big-vol
-      emptyDir:
-        sizeLimit: "20Ti"
+  description: Minimal pipeline for testing ReleasePlan integration
+  params:
+    - name: enable-finalizer
+      type: string
+      default: "true"
+    - name: enable-wait
+      type: string
+      default: "true"
+  workspaces:
+    - name: release-workspace
+  # results:
+  #   - name: TEST_OUTPUT
+  #     value: "$(tasks.test-output.results.TEST_OUTPUT)"
+  tasks:
+    - name: hello
+      taskSpec:
+        steps:
+          - name: say-hello
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Hello from a minimal pipeline!"
+
+    - name: goodbye
+      runAfter:
+        - hello
+      taskSpec:
+        steps:
+          - name: say-goodbye
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Goodbye from a minimal pipeline!"
+
+    - name: simulate-pending
+      runAfter:
+        - goodbye
+      taskSpec:
+        steps:
+          - name: simulate
+            image: busybox
+            command: ["sh"]
+            args: ["-c", "echo 'This should never run'"]
+            volumeMounts:
+              - name: missing-volume
+                mountPath: /not-there
+        volumes:
+          - name: missing-volume
+            persistentVolumeClaim:
+              claimName: pvc-that-does-not-exist
+  finally:
+    - name: long-finalizer
+      taskSpec:
+        steps:
+          - name: final-cleanup
+            image: registry.access.redhat.com/ubi8/ubi-minimal
+            script: |
+              #!/bin/sh
+              echo "Starting long final task..."
+              sleep 600  # Simulate long-running final step
+              echo "Final task done."
