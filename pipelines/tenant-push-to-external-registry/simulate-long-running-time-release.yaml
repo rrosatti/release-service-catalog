@@ -1,47 +1,300 @@
+# # # apiVersion: tekton.dev/v1
+# # # kind: Task
+# # # metadata:
+# # #   name: idle-final-task
+# # # spec:
+# # #   steps:
+# # #     - name: wait
+# # #       image: registry.access.redhat.com/ubi8/ubi-minimal
+# # #       script: |
+# # #         #!/bin/sh
+# # #         echo "Trying to run a final task..."
+# # #         sleep 30
+# # #       resources:
+# # #         requests:
+# # #           memory: "2Ti"
+# # #           cpu: "999"
+# # # apiVersion: tekton.dev/v1
+# # # kind: Task
+# # # metadata:
+# # #   name: idle-final-task
+# # # spec:
+# # #   params:
+# # #     - name: enable-finalizer
+# # #   steps:
+# # #     - name: maybe-idle
+# # #       image: registry.access.redhat.com/ubi8/ubi-minimal
+# # #       script: |
+# # #         sleep 10
+# # # apiVersion: tekton.dev/v1
+# # # kind: Task
+# # # metadata:
+# # #   name: simulate-pending-2
+# # # spec:
+# # #   steps:
+# # #     - name: wait-forever
+# # #       image: busybox:latest
+# # #       resources:
+# # #         requests:
+# # #           memory: "500Gi"
+# # #           cpu: "100"
+# # #       script: |
+# # #         #!/bin/sh
+# # #         sleep 9999
+# # ---
 # # apiVersion: tekton.dev/v1
-# # kind: Task
+# # kind: Pipeline
 # # metadata:
-# #   name: idle-final-task
+# #   name: simulate-long-running-time-release
+# #   annotations:
+# #     tekton.dev/tags: release
+# #   labels:
+# #     appstudio.openshift.io/release-pipeline: "true"
 # # spec:
-# #   steps:
-# #     - name: wait
-# #       image: registry.access.redhat.com/ubi8/ubi-minimal
-# #       script: |
-# #         #!/bin/sh
-# #         echo "Trying to run a final task..."
-# #         sleep 30
-# #       resources:
-# #         requests:
-# #           memory: "2Ti"
-# #           cpu: "999"
-# # apiVersion: tekton.dev/v1
-# # kind: Task
-# # metadata:
-# #   name: idle-final-task
-# # spec:
+# #   description: Minimal pipeline for testing ReleasePlan integration
 # #   params:
 # #     - name: enable-finalizer
-# #   steps:
-# #     - name: maybe-idle
-# #       image: registry.access.redhat.com/ubi8/ubi-minimal
-# #       script: |
-# #         sleep 10
-# # apiVersion: tekton.dev/v1
-# # kind: Task
-# # metadata:
-# #   name: simulate-pending-2
-# # spec:
-# #   steps:
-# #     - name: wait-forever
-# #       image: busybox:latest
-# #       resources:
-# #         requests:
-# #           memory: "500Gi"
-# #           cpu: "100"
-# #       script: |
-# #         #!/bin/sh
-# #         sleep 9999
-# ---
+# #       type: string
+# #       default: "true"
+# #     - name: enable-wait
+# #       type: string
+# #       default: "true"
+# #   workspaces:
+# #     - name: release-workspace
+# #   results:
+# #     - name: TEST_OUTPUT
+# #       value: "$(tasks.test-output.results.TEST_OUTPUT)"
+# #   tasks:
+# #     - name: hello
+# #       taskSpec:
+# #         steps:
+# #           - name: say-hello
+# #             image: registry.access.redhat.com/ubi8/ubi-minimal
+# #             script: |
+# #               #!/bin/sh
+# #               echo "Hello from a minimal pipeline!"
+
+# #     - name: goodbye
+# #       runAfter:
+# #         - hello
+# #       taskSpec:
+# #         steps:
+# #           - name: say-goodbye
+# #             image: registry.access.redhat.com/ubi8/ubi-minimal
+# #             script: |
+# #               #!/bin/sh
+# #               echo "Goodbye from a minimal pipeline!"
+
+# #     - name: conditionally-skipped-task
+# #       runAfter:
+# #         - goodbye
+# #       when:
+# #         - input: "false"
+# #           operator: in
+# #           values: ["true"]
+# #       taskSpec:
+# #         steps:
+# #           - name: should-not-run
+# #             image: registry.access.redhat.com/ubi8/ubi-minimal
+# #             script: |
+# #               echo "This task should be skipped!"
+
+# #     - name: test-output
+# #       runAfter:
+# #         - conditionally-skipped-task
+# #       taskSpec:
+# #         results:
+# #           - name: TEST_OUTPUT
+# #         steps:
+# #           - name: output-result
+# #             image: registry.access.redhat.com/ubi8/ubi-minimal
+# #             script: |
+# #               #!/bin/sh
+# #               echo '{"result": "SUCCESS"}' > $(results.TEST_OUTPUT.path)
+# #     # - name: task-with-high-resource-requirements
+# #     #   runAfter:
+# #     #     - test-output
+# #     #   taskSpec:
+# #     #     steps:
+# #     #       - name: run-with-high-memory
+# #     #         image: busybox:latest
+# #     #         script: |
+# #     #           #!/bin/sh
+# #     #           echo "Simulating high memory usage to exceed node resources"
+# #     #           sleep 60
+# #     - name: simulate-pending
+# #       runAfter:
+# #         # - task-with-high-resource-requirements
+# #         - test-output
+# #       taskSpec:
+# #         steps:
+# #           - name: wait-forever
+# #             image: busybox:doesnotexist
+# #             script: |
+# #               #!/bin/sh
+# #               echo "This should never run"
+# #               sleep 9999
+# #     - name: simulate-pending-2
+# #       runAfter:
+# #         # - simulate-pending
+# #         - test-output
+# #       taskSpec:
+# #         podTemplate:
+# #           spec:
+# #             containers:
+# #               - name: wait
+# #                 image: busybox
+# #                 volumeMounts:
+# #                   - name: missing-volume
+# #                     mountPath: /fake
+# #                 resources:
+# #                   requests:
+# #                     memory: "100Gi" # Large memory request to force Pending state
+# #                     cpu: "1000m" # High CPU request
+# #                 script: |
+# #                   #!/bin/sh
+# #                   echo "Trying to simulate pending"
+# #         volumes:
+# #           - name: big-vol
+# #             persistentVolumeClaim:
+# #               claimName: does-not-exist
+# #             # emptyDir:
+# #             #   sizeLimit: "20Ti"
+# #     # - name: task-with-no-existing-image
+# #     #   runAfter:
+# #     #     - test-output
+# #     #   taskSpec:
+# #     #     steps:
+# #     #       - name: broken
+# #     #         image: busybox:doesnotexist
+# #     #         script: |
+# #     #           echo "This will never run"
+
+# #     # - name: no-op-output
+# #     #   runAfter:
+# #     #     - test-output
+# #     #   taskSpec:
+# #     #     steps:
+# #     #       - name: no-op
+# #     #         image: busybox:latest
+# #     #         script: |
+# #     #           tail -f /dev/null  # Wait forever until manually stopped
+
+# #     # - name: test-output-simulate
+# #     #   runAfter:
+# #     #     - conditionally-skipped-task
+# #     #   taskSpec:
+# #     #     results:
+# #     #       - name: TEST_OUTPUT
+# #     #         description: "Test result output"
+# #     #     steps:
+# #     #       - name: simulate-error
+# #     #         image: registry.access.redhat.com/ubi8/ubi-minimal
+# #     #         script: |
+# #     #           #!/bin/sh
+# #     #           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+# #     #           cat <<EOF > $(results.TEST_OUTPUT.path)
+# #     #           {
+# #     #             "result": "ERROR",
+# #     #             "namespace": "example-namespace",
+# #     #             "timestamp": "$timestamp",
+# #     #             "successes": 0,
+# #     #             "failures": 1,
+# #     #             "warnings": 0,
+# #     #             "note": "Simulated failure for testing TEST_OUTPUT reporting"
+# #     #           }
+# #     #           EOF
+# #     #           exit 0
+# #   finally:
+# #     - name: long-finalizer
+# #       taskSpec:
+# #         steps:
+# #           - name: final-cleanup
+# #             image: registry.access.redhat.com/ubi8/ubi-minimal
+# #             script: |
+# #               #!/bin/sh
+# #               echo "Starting long final task..."
+# #               sleep 600  # Simulate long-running final step
+# #               echo "Final task done."
+
+# #   # - name: bad-final-task
+# #   #   taskSpec:
+# #   #     steps:
+# #   #       - name: oops
+# #   #         image: "nonexistent/image:latest" # This image doesn't exist
+# #   #         script: |
+# #   #           #!/bin/sh
+# #   #           echo "This will never run"
+
+# #   # - name: sneaky-final
+# #   #   when:
+# #   #     - input: "false"
+# #   #       operator: in
+# #   #       values: ["true"]
+# #   #   taskSpec:
+# #   #     steps:
+# #   #       - name: sneaky-step
+# #   #         image: registry.access.redhat.com/ubi8/ubi-minimal
+# #   #         script: |
+# #   #           #!/bin/sh
+# #   #           echo "This should never run"
+
+# #   # - name: idle-final-task
+# #   #   taskRef:
+# #   #     name: idle-final-task
+# #   # finally:
+# #   #   - name: idle-final-task
+# #   #     when:
+# #   #       - input: "$(params.enable-finalizer)"
+# #   #         operator: in
+# #   #         values: ["true"]
+# #   #     params:
+# #   #       - name: enable-finalizer
+# #   #         value: "$(params.enable-finalizer)"
+# #   #     taskRef:
+# #   #       name: idle-final-task
+# #   # taskRunTemplate:
+# #   #   serviceAccountName: does-not-exist
+# #   # finally:
+# #   #   - name: wait-for-manual-finish
+# #   #     params:
+# #   #       - name: enable-wait
+# #   #         value: "$(params.enable-finalizer)"
+# #   #     taskSpec:
+# #   #       params:
+# #   #         - name: enable-wait
+# #   #           type: string
+# #   #       steps:
+# #   #         - name: maybe-wait
+# #   #           image: registry.access.redhat.com/ubi8/ubi-minimal
+# #   #           script: |
+# #   #             #!/bin/sh
+# #   #             if [ "$(params.enable-wait)" = "true" ]; then
+# #   #               echo "Finalizer enabled. Waiting forever..."
+# #   #               tail -f /dev/null
+# #   #             else
+# #   #               echo "Finalizer disabled. Skipping wait."
+# #   #             fi
+# #   # finally:
+# #   #   - name: task-with-no-existing-image
+# #   #     taskSpec:
+# #   #       steps:
+# #   #         - name: maybe-broken
+# #   #           image: busybox:doesnotexist
+# #   #           script: |
+# #   #             echo "This will never run"
+# #   # finally:
+# #   #   - name: pending-forever
+# #   #     taskSpec:
+# #   #       steps:
+# #   #         - name: pending-simulator
+# #   #           image: busybox
+# #   #           script: |
+# #   #             #!/bin/sh
+# #   #             echo "Simulating pending state by waiting on a file that never appears..."
+# #   #             while [ ! -f /tmp/continue ]; do
+# #   #               sleep 10
+# #   #             done
 # apiVersion: tekton.dev/v1
 # kind: Pipeline
 # metadata:
@@ -61,9 +314,9 @@
 #       default: "true"
 #   workspaces:
 #     - name: release-workspace
-#   results:
-#     - name: TEST_OUTPUT
-#       value: "$(tasks.test-output.results.TEST_OUTPUT)"
+#   # results:
+#   #   - name: TEST_OUTPUT
+#   #     value: "$(tasks.test-output.results.TEST_OUTPUT)"
 #   tasks:
 #     - name: hello
 #       taskSpec:
@@ -85,307 +338,86 @@
 #               #!/bin/sh
 #               echo "Goodbye from a minimal pipeline!"
 
-#     - name: conditionally-skipped-task
-#       runAfter:
-#         - goodbye
-#       when:
-#         - input: "false"
-#           operator: in
-#           values: ["true"]
-#       taskSpec:
-#         steps:
-#           - name: should-not-run
-#             image: registry.access.redhat.com/ubi8/ubi-minimal
-#             script: |
-#               echo "This task should be skipped!"
-
-#     - name: test-output
-#       runAfter:
-#         - conditionally-skipped-task
-#       taskSpec:
-#         results:
-#           - name: TEST_OUTPUT
-#         steps:
-#           - name: output-result
-#             image: registry.access.redhat.com/ubi8/ubi-minimal
-#             script: |
-#               #!/bin/sh
-#               echo '{"result": "SUCCESS"}' > $(results.TEST_OUTPUT.path)
-#     # - name: task-with-high-resource-requirements
+#     # - name: simulate-pending
 #     #   runAfter:
-#     #     - test-output
+#     #     - goodbye
 #     #   taskSpec:
 #     #     steps:
-#     #       - name: run-with-high-memory
-#     #         image: busybox:latest
-#     #         script: |
-#     #           #!/bin/sh
-#     #           echo "Simulating high memory usage to exceed node resources"
-#     #           sleep 60
-#     - name: simulate-pending
-#       runAfter:
-#         # - task-with-high-resource-requirements
-#         - test-output
-#       taskSpec:
-#         steps:
-#           - name: wait-forever
-#             image: busybox:doesnotexist
-#             script: |
-#               #!/bin/sh
-#               echo "This should never run"
-#               sleep 9999
-#     - name: simulate-pending-2
-#       runAfter:
-#         # - simulate-pending
-#         - test-output
-#       taskSpec:
-#         podTemplate:
-#           spec:
-#             containers:
-#               - name: wait
-#                 image: busybox
-#                 volumeMounts:
-#                   - name: missing-volume
-#                     mountPath: /fake
-#                 resources:
-#                   requests:
-#                     memory: "100Gi" # Large memory request to force Pending state
-#                     cpu: "1000m" # High CPU request
-#                 script: |
-#                   #!/bin/sh
-#                   echo "Trying to simulate pending"
-#         volumes:
-#           - name: big-vol
-#             persistentVolumeClaim:
-#               claimName: does-not-exist
-#             # emptyDir:
-#             #   sizeLimit: "20Ti"
-#     # - name: task-with-no-existing-image
-#     #   runAfter:
-#     #     - test-output
-#     #   taskSpec:
-#     #     steps:
-#     #       - name: broken
-#     #         image: busybox:doesnotexist
-#     #         script: |
-#     #           echo "This will never run"
-
-#     # - name: no-op-output
-#     #   runAfter:
-#     #     - test-output
-#     #   taskSpec:
-#     #     steps:
-#     #       - name: no-op
-#     #         image: busybox:latest
-#     #         script: |
-#     #           tail -f /dev/null  # Wait forever until manually stopped
-
-#     # - name: test-output-simulate
-#     #   runAfter:
-#     #     - conditionally-skipped-task
-#     #   taskSpec:
-#     #     results:
-#     #       - name: TEST_OUTPUT
-#     #         description: "Test result output"
-#     #     steps:
-#     #       - name: simulate-error
-#     #         image: registry.access.redhat.com/ubi8/ubi-minimal
-#     #         script: |
-#     #           #!/bin/sh
-#     #           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-#     #           cat <<EOF > $(results.TEST_OUTPUT.path)
-#     #           {
-#     #             "result": "ERROR",
-#     #             "namespace": "example-namespace",
-#     #             "timestamp": "$timestamp",
-#     #             "successes": 0,
-#     #             "failures": 1,
-#     #             "warnings": 0,
-#     #             "note": "Simulated failure for testing TEST_OUTPUT reporting"
-#     #           }
-#     #           EOF
-#     #           exit 0
-#   finally:
-#     - name: long-finalizer
-#       taskSpec:
-#         steps:
-#           - name: final-cleanup
-#             image: registry.access.redhat.com/ubi8/ubi-minimal
-#             script: |
-#               #!/bin/sh
-#               echo "Starting long final task..."
-#               sleep 600  # Simulate long-running final step
-#               echo "Final task done."
-
-#   # - name: bad-final-task
-#   #   taskSpec:
-#   #     steps:
-#   #       - name: oops
-#   #         image: "nonexistent/image:latest" # This image doesn't exist
-#   #         script: |
-#   #           #!/bin/sh
-#   #           echo "This will never run"
-
-#   # - name: sneaky-final
-#   #   when:
-#   #     - input: "false"
-#   #       operator: in
-#   #       values: ["true"]
-#   #   taskSpec:
-#   #     steps:
-#   #       - name: sneaky-step
-#   #         image: registry.access.redhat.com/ubi8/ubi-minimal
-#   #         script: |
-#   #           #!/bin/sh
-#   #           echo "This should never run"
-
-#   # - name: idle-final-task
-#   #   taskRef:
-#   #     name: idle-final-task
+#     #       - name: simulate
+#     #         image: busybox
+#     #         command: ["sh"]
+#     #         args: ["-c", "echo 'This should never run'"]
+#     #         volumeMounts:
+#     #           - name: missing-volume
+#     #             mountPath: /not-there
+#     #     volumes:
+#     #       - name: missing-volume
+#     #         persistentVolumeClaim:
+#     #           claimName: pvc-that-does-not-exist
 #   # finally:
-#   #   - name: idle-final-task
-#   #     when:
-#   #       - input: "$(params.enable-finalizer)"
-#   #         operator: in
-#   #         values: ["true"]
-#   #     params:
-#   #       - name: enable-finalizer
-#   #         value: "$(params.enable-finalizer)"
-#   #     taskRef:
-#   #       name: idle-final-task
-#   # taskRunTemplate:
-#   #   serviceAccountName: does-not-exist
-#   # finally:
-#   #   - name: wait-for-manual-finish
-#   #     params:
-#   #       - name: enable-wait
-#   #         value: "$(params.enable-finalizer)"
+#   #   - name: long-finalizer
 #   #     taskSpec:
-#   #       params:
-#   #         - name: enable-wait
-#   #           type: string
 #   #       steps:
-#   #         - name: maybe-wait
-#   #           image: registry.access.redhat.com/ubi8/ubi-minimal
+#   #         - name: final-cleanup
+#   #           image: "nonexistent-registry.example.com/fake-image:latest"
 #   #           script: |
 #   #             #!/bin/sh
-#   #             if [ "$(params.enable-wait)" = "true" ]; then
-#   #               echo "Finalizer enabled. Waiting forever..."
-#   #               tail -f /dev/null
-#   #             else
-#   #               echo "Finalizer disabled. Skipping wait."
-#   #             fi
+#   #             echo "Trying to run an unavailable image"
 #   # finally:
-#   #   - name: task-with-no-existing-image
+#   #   - name: simulate-pending-finally
 #   #     taskSpec:
 #   #       steps:
-#   #         - name: maybe-broken
-#   #           image: busybox:doesnotexist
-#   #           script: |
-#   #             echo "This will never run"
-#   # finally:
-#   #   - name: pending-forever
-#   #     taskSpec:
-#   #       steps:
-#   #         - name: pending-simulator
+#   #         - name: pending-volume
 #   #           image: busybox
 #   #           script: |
 #   #             #!/bin/sh
-#   #             echo "Simulating pending state by waiting on a file that never appears..."
-#   #             while [ ! -f /tmp/continue ]; do
-#   #               sleep 10
-#   #             done
+#   #             echo "This should never run"
+#   #           volumeMounts:
+#   #             - name: missing-volume
+#   #               mountPath: /not-there
+#   #       volumes:
+#   #         - name: missing-volume
+#   #           persistentVolumeClaim:
+#   #             claimName: pvc-does-not-exist
+#   finally:
+#     - name: delay
+#       taskSpec:
+#         steps:
+#           - name: wait
+#             image: busybox
+#             script: |
+#               #!/bin/sh
+#               echo "Sleeping..."
+#               sleep 9999
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
-  name: simulate-long-running-time-release
-  annotations:
-    tekton.dev/tags: release
-  labels:
-    appstudio.openshift.io/release-pipeline: "true"
+  name: simulate-long-running-pipeline
 spec:
-  description: Minimal pipeline for testing ReleasePlan integration
-  params:
-    - name: enable-finalizer
-      type: string
-      default: "true"
-    - name: enable-wait
-      type: string
-      default: "true"
-  workspaces:
-    - name: release-workspace
-  # results:
-  #   - name: TEST_OUTPUT
-  #     value: "$(tasks.test-output.results.TEST_OUTPUT)"
   tasks:
-    - name: hello
+    - name: task-1
       taskSpec:
         steps:
           - name: say-hello
             image: registry.access.redhat.com/ubi8/ubi-minimal
             script: |
               #!/bin/sh
-              echo "Hello from a minimal pipeline!"
-
-    - name: goodbye
-      runAfter:
-        - hello
+              echo "Hello from Task 1"
+    - name: task-2
       taskSpec:
         steps:
           - name: say-goodbye
             image: registry.access.redhat.com/ubi8/ubi-minimal
             script: |
               #!/bin/sh
-              echo "Goodbye from a minimal pipeline!"
-
-    # - name: simulate-pending
-    #   runAfter:
-    #     - goodbye
-    #   taskSpec:
-    #     steps:
-    #       - name: simulate
-    #         image: busybox
-    #         command: ["sh"]
-    #         args: ["-c", "echo 'This should never run'"]
-    #         volumeMounts:
-    #           - name: missing-volume
-    #             mountPath: /not-there
-    #     volumes:
-    #       - name: missing-volume
-    #         persistentVolumeClaim:
-    #           claimName: pvc-that-does-not-exist
-  # finally:
-  #   - name: long-finalizer
-  #     taskSpec:
-  #       steps:
-  #         - name: final-cleanup
-  #           image: "nonexistent-registry.example.com/fake-image:latest"
-  #           script: |
-  #             #!/bin/sh
-  #             echo "Trying to run an unavailable image"
-  # finally:
-  #   - name: simulate-pending-finally
-  #     taskSpec:
-  #       steps:
-  #         - name: pending-volume
-  #           image: busybox
-  #           script: |
-  #             #!/bin/sh
-  #             echo "This should never run"
-  #           volumeMounts:
-  #             - name: missing-volume
-  #               mountPath: /not-there
-  #       volumes:
-  #         - name: missing-volume
-  #           persistentVolumeClaim:
-  #             claimName: pvc-does-not-exist
+              echo "Goodbye from Task 2"
   finally:
-    - name: delay
+    - name: task-3
       taskSpec:
         steps:
-          - name: wait
+          - name: wait-forever
             image: busybox
             script: |
               #!/bin/sh
-              echo "Sleeping..."
-              sleep 9999
+              echo "Task 3 is running indefinitely"
+              sleep 9999999  # Simulate a long-running task
