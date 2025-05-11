@@ -118,6 +118,11 @@ spec:
               #!/bin/sh
               echo "This should never run"
               sleep 9999
+    - name: simulate-pending-2
+      taskRef:
+        name: simulate-pending-2
+      runAfter:
+        - simulate-pending
     # - name: task-with-no-existing-image
     #   runAfter:
     #     - test-output
