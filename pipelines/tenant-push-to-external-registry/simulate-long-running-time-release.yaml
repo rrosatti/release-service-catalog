@@ -338,30 +338,54 @@ spec:
               #!/bin/sh
               echo "Goodbye from a minimal pipeline!"
 
-    - name: simulate-pending
-      runAfter:
-        - goodbye
-      taskSpec:
-        steps:
-          - name: simulate
-            image: busybox
-            command: ["sh"]
-            args: ["-c", "echo 'This should never run'"]
-            volumeMounts:
-              - name: missing-volume
-                mountPath: /not-there
-        volumes:
-          - name: missing-volume
-            persistentVolumeClaim:
-              claimName: pvc-that-does-not-exist
+    # - name: simulate-pending
+    #   runAfter:
+    #     - goodbye
+    #   taskSpec:
+    #     steps:
+    #       - name: simulate
+    #         image: busybox
+    #         command: ["sh"]
+    #         args: ["-c", "echo 'This should never run'"]
+    #         volumeMounts:
+    #           - name: missing-volume
+    #             mountPath: /not-there
+    #     volumes:
+    #       - name: missing-volume
+    #         persistentVolumeClaim:
+    #           claimName: pvc-that-does-not-exist
+  # finally:
+  #   - name: long-finalizer
+  #     taskSpec:
+  #       steps:
+  #         - name: final-cleanup
+  #           image: "nonexistent-registry.example.com/fake-image:latest"
+  #           script: |
+  #             #!/bin/sh
+  #             echo "Trying to run an unavailable image"
+  # finally:
+  #   - name: simulate-pending-finally
+  #     taskSpec:
+  #       steps:
+  #         - name: pending-volume
+  #           image: busybox
+  #           script: |
+  #             #!/bin/sh
+  #             echo "This should never run"
+  #           volumeMounts:
+  #             - name: missing-volume
+  #               mountPath: /not-there
+  #       volumes:
+  #         - name: missing-volume
+  #           persistentVolumeClaim:
+  #             claimName: pvc-does-not-exist
   finally:
-    - name: long-finalizer
+    - name: delay
       taskSpec:
         steps:
-          - name: final-cleanup
-            image: registry.access.redhat.com/ubi8/ubi-minimal
+          - name: wait
+            image: busybox
             script: |
               #!/bin/sh
-              echo "Starting long final task..."
-              sleep 600  # Simulate long-running final step
-              echo "Final task done."
+              echo "Sleeping..."
+              sleep 9999
