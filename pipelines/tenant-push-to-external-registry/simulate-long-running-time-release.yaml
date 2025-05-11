@@ -139,26 +139,21 @@ spec:
         # - simulate-pending
         - test-output
       taskSpec:
-        steps:
-          - name: wait
-            image: busybox
-            # volumeMounts:
-            #   - name: missing-volume
-            #     mountPath: /fake
-            volumeMounts:
-              - name: missing-volume
-                mountPath: /fake
-            script: |
-              #!/bin/sh
-              echo "Trying to simulate pending"
-            # volumes:
-            #   - name: missing-volume
-            #     configMap:
-            #       name: definitely-does-not-exist
-            resources:
-              requests:
-                memory: "100Gi" # Force a high resource request to simulate Pending
-                cpu: "1000m" # to increase the chance of failure
+        podTemplate:
+          spec:
+            containers:
+              - name: wait
+                image: busybox
+                volumeMounts:
+                  - name: missing-volume
+                    mountPath: /fake
+                resources:
+                  requests:
+                    memory: "100Gi" # Large memory request to force Pending state
+                    cpu: "1000m" # High CPU request
+                script: |
+                  #!/bin/sh
+                  echo "Trying to simulate pending"
         volumes:
           - name: big-vol
             persistentVolumeClaim:
