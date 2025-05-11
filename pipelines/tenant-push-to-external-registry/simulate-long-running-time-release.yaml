@@ -136,7 +136,8 @@ spec:
               sleep 9999
     - name: simulate-pending-2
       runAfter:
-        - simulate-pending
+        # - simulate-pending
+        - test-output
       taskSpec:
         steps:
           - name: wait
