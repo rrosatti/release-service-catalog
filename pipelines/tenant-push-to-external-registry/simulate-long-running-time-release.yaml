@@ -393,31 +393,395 @@ apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: simulate-long-running-pipeline
+  # spec:
+  # tasks:
+  #   - name: task-1
+  #     taskSpec:
+  #       steps:
+  #         - name: say-hello
+  #           image: registry.access.redhat.com/ubi8/ubi-minimal
+  #           script: |
+  #             #!/bin/sh
+  #             echo "Hello from Task 1"
+  #   - name: task-2
+  #     taskSpec:
+  #       steps:
+  #         - name: say-goodbye
+  #           image: registry.access.redhat.com/ubi8/ubi-minimal
+  #           script: |
+  #             #!/bin/sh
+  #             echo "Goodbye from Task 2"
+  # finally:
+  #   - name: task-3
+  #     taskSpec:
+  #       steps:
+  #         - name: wait-forever
+  #           image: busybox
+  #           script: |
+  #             #!/bin/sh
+  #             echo "Task 3 is running indefinitely"
+  #             sleep 9999999  # Simulate a long-running task
+# spec:
+#   params:
+#     - name: run-final-task
+#       type: string
+#       default: "yes"
+#   tasks:
+#     - name: long-running-task
+#       taskSpec:
+#         steps:
+#           - name: sleep
+#             image: alpine
+#             script: |
+#               echo "Sleeping forever..."
+#               sleep 999999
+
+#     - name: final-task
+#       # runAfter:
+#       #   - long-running-task # To test, you could remove this dependency to break normal flow
+#       when:
+#         - input: "$(params.run-final-task)"
+#           operator: in
+#           values: ["yes"]
+#       taskSpec:
+#         steps:
+#           - name: finish
+#             image: alpine
+#             script: |
+#               echo "Finishing quickly"
+#   finally:
+#     - name: fast-finish
+#       taskSpec:
+#         steps:
+#           - name: finish
+#             image: alpine
+#             script: |
+#               echo "Finished"
+# spec:
+#   params:
+#     - name: run-quick-task
+#       type: string
+#       default: "yes"
+
+#   tasks:
+#     - name: long-task-a
+#       taskSpec:
+#         steps:
+#           - name: sleep-a
+#             image: alpine
+#             script: |
+#               echo "Simulating long task A"
+#               sleep 999999
+
+#     - name: long-task-b
+#       taskSpec:
+#         steps:
+#           - name: sleep-b
+#             image: alpine
+#             script: |
+#               echo "Simulating long task B"
+#               sleep 999999
+
+#     - name: quick-conditional-task
+#       when:
+#         - input: "$(params.run-quick-task)"
+#           operator: in
+#           values: ["yes"]
+#       taskSpec:
+#         steps:
+#           - name: quick
+#             image: alpine
+#             script: |
+#               echo "Quick conditional task completed."
+
+#   finally:
+#     - name: report
+#       taskSpec:
+#         steps:
+#           - name: report
+#             image: alpine
+#             script: |
+#               echo "Finally block executed."
+# spec:
+#   params:
+#     - name: skip-something
+#       type: string
+#       default: "no"
+
+#   tasks:
+#     - name: long-runner
+#       taskSpec:
+#         steps:
+#           - name: sleep
+#             image: alpine
+#             script: |
+#               echo "Long-running task"
+#               sleep 999999
+
+#     - name: retrying-task
+#       retries: 2
+#       taskSpec:
+#         steps:
+#           - name: maybe-fail
+#             image: alpine
+#             script: |
+#               if [ "$(RETRY_COUNT)" == "1" ]; then
+#                 echo "Failing on first try"
+#                 exit 1
+#               fi
+#               echo "Succeeded on retry"
+#             env:
+#               - name: RETRY_COUNT
+#                 valueFrom:
+#                   fieldRef:
+#                     fieldPath: metadata.annotations['tekton.dev/retry-count']
+
+#     - name: skipped-task
+#       when:
+#         - input: "$(params.skip-something)"
+#           operator: in
+#           values: ["yes"]
+#       taskSpec:
+#         steps:
+#           - name: should-skip
+#             image: alpine
+#             script: |
+#               echo "This should be skipped"
+
+#   finally:
+#     - name: final-cleanup
+#       taskSpec:
+#         steps:
+#           - name: clean
+#             image: alpine
+#             script: |
+#               echo "Cleaning up pipeline"
+# spec:
+#   params:
+#     - name: run-long
+#       type: string
+#       default: "no"
+
+#   tasks:
+#     - name: matrix-fast-tasks
+#       matrix:
+#         params:
+#           - name: mode
+#             value: ["fast1", "fast2"]
+#       taskSpec:
+#         params:
+#           - name: mode
+#             type: string
+#         steps:
+#           - name: run-fast
+#             image: alpine
+#             script: |
+#               echo "Running mode $(params.mode)..."
+#               sleep 1
+
+#     - name: long-runner
+#       when:
+#         - input: "$(params.run-long)"
+#           operator: in
+#           values: ["yes"]
+#       taskSpec:
+#         steps:
+#           - name: hang
+#             image: alpine
+#             script: |
+#               echo "This task will hang forever..."
+#               sleep 999999
+
+#   finally:
+#     - name: final-step
+#       taskSpec:
+#         steps:
+#           - name: done
+#             image: alpine
+#             script: |
+#               echo "Final cleanup complete."
+# spec:
+#   params:
+#     - name: run-failing-iteration
+#       type: string
+#       default: "yes"
+#   tasks:
+#     - name: matrix-task
+#       matrix:
+#         params:
+#           - name: iteration
+#             value: ["1", "2"]
+#       taskSpec:
+#         params:
+#           - name: iteration
+#             type: string
+#         steps:
+#           - name: run
+#             image: alpine
+#             script: |
+#               echo "Running iteration $(params.iteration)"
+#               if [ "$(params.iteration)" = "2" ]; then
+#                 echo "Simulating failure on iteration 2"
+#                 exit 1
+#               fi
+#               echo "Success on iteration $(params.iteration)"
+
+#     - name: conditional-skipped-task
+#       when:
+#         - input: "$(params.run-failing-iteration)"
+#           operator: notin
+#           values: ["yes"]
+#       taskSpec:
+#         steps:
+#           - name: skipped
+#             image: alpine
+#             script: echo "Should be skipped"
+
+#   finally:
+#     - name: cleanup
+#       taskSpec:
+#         steps:
+#           - name: cleanup-step
+#             image: alpine
+#             script: echo "Final cleanup runs no matter what"
+# spec:
+#   params:
+#     - name: run-failing-iteration
+#       type: string
+#       default: "yes"
+#   tasks:
+#     - name: matrix-task
+#       matrix:
+#         params:
+#           - name: iteration
+#             value: ["1", "2"]
+#       taskSpec:
+#         params:
+#           - name: iteration
+#             type: string
+#         steps:
+#           - name: run
+#             image: alpine
+#             script: |
+#               echo "Running iteration $(params.iteration)"
+#               if [ "$(params.iteration)" = "2" ]; then
+#                 echo "Simulating failure on iteration 2"
+#                 exit 0  # Pretend success even on failure
+#               fi
+#               echo "Success on iteration $(params.iteration)"
+
+#     - name: conditional-skipped-task
+#       when:
+#         - input: "$(params.run-failing-iteration)"
+#           operator: notin
+#           values: ["yes"]
+#       taskSpec:
+#         steps:
+#           - name: skipped
+#             image: alpine
+#             script: echo "Should be skipped"
+
+#   finally:
+#     - name: cleanup
+#       taskSpec:
+#         steps:
+#           - name: cleanup-step
+#             image: alpine
+#             script: echo "Final cleanup runs no matter what"
+# spec:
+#   params:
+#     - name: matrix-entries
+#       type: array
+#       default: ["fast", "stuck"]
+#   tasks:
+#     - name: matrix-task
+#       matrix:
+#         params:
+#           - name: entry
+#             value: ["fast", "stuck"]
+#       taskSpec:
+#         params:
+#           - name: entry
+#             type: string
+#         steps:
+#           - name: simulate
+#             image: alpine
+#             script: |
+#               if [ "$(params.entry)" = "fast" ]; then
+#                 echo "Fast task completes quickly"
+#                 exit 0
+#               elif [ "$(params.entry)" = "stuck" ]; then
+#                 echo "Stuck task simulates pending..."
+#                 # Try using nonexistent volume to make it stay in Pending
+#                 mkdir -p /nonexistent/path
+#                 touch /nonexistent/path/will-not-work
+#               fi
+
+#     - name: final-step
+#       runAfter:
+#         - matrix-task
+#       taskSpec:
+#         steps:
+#           - name: done
+#             image: alpine
+#             script: echo "Final step complete"
+# spec:
+#   tasks:
+#     - name: matrix-task
+#       matrix:
+#         params:
+#           - name: variant
+#             value: ["good", "nosuchregistry.example.com/fake/image"]
+#       taskSpec:
+#         params:
+#           - name: variant
+#             type: string
+#         steps:
+#           - name: check
+#             image: $(params.variant)
+#             script: |
+#               echo "This should run for variant: $(params.variant)"
+
+#     - name: finalizer
+#       runAfter: [matrix-task]
+#       taskSpec:
+#         steps:
+#           - name: finish
+#             image: alpine
+#             script: |
+#               echo "Pipeline finished"
 spec:
+  params:
+    - name: should-run-bad-task
+      type: string
+      default: "no"
+
   tasks:
-    - name: task-1
+    - name: good-task
       taskSpec:
         steps:
-          - name: say-hello
-            image: registry.access.redhat.com/ubi8/ubi-minimal
+          - name: do-good
+            image: alpine
             script: |
-              #!/bin/sh
-              echo "Hello from Task 1"
-    - name: task-2
+              echo "This task completes successfully."
+
+    - name: bad-task
+      when:
+        - input: "$(params.should-run-bad-task)"
+          operator: in
+          values: ["yes"]
       taskSpec:
         steps:
-          - name: say-goodbye
-            image: registry.access.redhat.com/ubi8/ubi-minimal
+          - name: hang
+            image: nosuchregistry.example.com/never:pull
             script: |
-              #!/bin/sh
-              echo "Goodbye from Task 2"
-  finally:
-    - name: task-3
+              echo "Should never get here."
+
+    - name: final-step
+      runAfter: [good-task]
       taskSpec:
         steps:
-          - name: wait-forever
-            image: busybox
+          - name: finalize
+            image: alpine
             script: |
-              #!/bin/sh
-              echo "Task 3 is running indefinitely"
-              sleep 9999999  # Simulate a long-running task
+              echo "All done."
