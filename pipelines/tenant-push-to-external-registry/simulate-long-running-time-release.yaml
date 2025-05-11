@@ -97,15 +97,21 @@ spec:
               #!/bin/sh
               echo '{"result": "SUCCESS"}' > $(results.TEST_OUTPUT.path)
     - name: task-with-high-resource-requirements
+      runAfter:
+        - test-output
       taskSpec:
         steps:
           - name: run-with-high-memory
             image: busybox:latest
             script: |
               #!/bin/sh
-              # echo "Simulating high memory usage to exceed node resources"
-              # sleep 60
-              dd if=/dev/zero of=/dev/null bs=1G count=10
+              echo "Simulating high memory usage to exceed node resources"
+              sleep 60
+        podTemplate:
+          tolerations:
+            - key: "nonexistent-taint"
+              operator: "Exists"
+              effect: "NoSchedule"
     # - name: task-with-no-existing-image
     #   runAfter:
     #     - test-output
