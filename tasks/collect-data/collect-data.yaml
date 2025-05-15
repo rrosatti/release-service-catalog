@@ -29,6 +29,10 @@ spec:
       description: Subdirectory inside the workspace to be used
       type: string
       default: ""
+    - name: dataDir
+      description: The location where data will be stored
+      type: string
+      default: $(workspaces.data.path)
   workspaces:
     - name: data
       description: Workspace to save the CR jsons to
@@ -51,25 +55,39 @@ spec:
     - name: data
       type: string
       description: The relative path in the workspace to the stored data json
+    - name: subdirectory
+      type: string
+      description: The subdirectory used to store the output
+    - name: resultsDir
+      type: string
+      description: The relative path in the workspace to the results directory
   steps:
     - name: collect-data
       image: quay.io/redhat-appstudio/release-service-utils:447ea0580a2cdd48b4091e1df86fab5c3f86d01c
       env:
         - name: "RELEASE"
-          value: '$(params.release)'
+          value: "$(params.release)"
         - name: "RELEASE_PLAN"
-          value: '$(params.releaseplan)'
+          value: "$(params.releaseplan)"
         - name: "RELEASE_PLAN_ADMISSION"
-          value: '$(params.releaseplanadmission)'
+          value: "$(params.releaseplanadmission)"
         - name: "SNAPSHOT"
-          value: '$(params.snapshot)'
+          value: "$(params.snapshot)"
       script: |
         #!/usr/bin/env sh
-        set -e
+        set -eo pipefail
 
+        set -x
+        echo -n "$(params.subdirectory)" > "$(results.subdirectory.path)"
+
+        RESULTS_DIR_PATH="results"
         if [ -n "$(params.subdirectory)" ]; then
           mkdir -p $(workspaces.data.path)/$(params.subdirectory)
+          RESULTS_DIR_PATH="$(params.subdirectory)/results"
         fi
+
+        mkdir -p "$(params.dataDir)/$RESULTS_DIR_PATH"
+        echo -n "$RESULTS_DIR_PATH" > "$(results.resultsDir.path)"
 
         RELEASE_PATH=$(params.subdirectory)/release.json
         echo -n $RELEASE_PATH > $(results.release.path)
