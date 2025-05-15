@@ -92,7 +92,11 @@ spec:
               fi
           done
 
-          cp "$IMAGE_PATH"/* "$BINARIES_PATH"/
+          if [ -d "$IMAGE_PATH" ]; then
+            cp "$IMAGE_PATH"/* "$BINARIES_PATH"/
+          else
+            echo "Directory $IMAGE_PATH not found. Nothing to copy."
+          fi
         done
 
         echo -n "$(params.subdirectory)/$BINARIES_DIR" | tee "$(results.binaries_path.path)"
