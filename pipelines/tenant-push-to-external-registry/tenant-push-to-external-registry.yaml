@@ -314,6 +314,30 @@ spec:
     #           echo "package: $(params.package)"
     #           echo "flags: $(params.flags)"
     #           echo "context: $(params.context)"
+    - name: update-cr-status
+      params:
+        - name: resource
+          value: $(params.release)
+        - name: resultsDirPath
+          value: $(tasks.collect-data.results.resultsDir)
+        - name: taskGitUrl
+          value: "$(params.taskGitUrl)"
+        - name: taskGitRevision
+          value: "$(params.taskGitRevision)"
+      taskRef:
+        resolver: "git"
+        params:
+          - name: url
+            value: $(params.taskGitUrl)
+          - name: revision
+            value: $(params.taskGitRevision)
+          - name: pathInRepo
+            value: tasks/update-cr-status/update-cr-status.yaml
+      workspaces:
+        - name: data
+          workspace: release-workspace
+      runAfter:
+        - collect-data
   finally:
     - name: cleanup
       taskRef:
