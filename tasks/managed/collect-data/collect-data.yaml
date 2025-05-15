@@ -139,15 +139,15 @@ spec:
       image: quay.io/konflux-ci/release-service-utils:e633d51cd41d73e4b3310face21bb980af7a662f
       env:
         - name: "RELEASE"
-          value: '$(params.release)'
+          value: "$(params.release)"
         - name: "RELEASE_PLAN"
-          value: '$(params.releasePlan)'
+          value: "$(params.releasePlan)"
         - name: "RELEASE_PLAN_ADMISSION"
-          value: '$(params.releasePlanAdmission)'
+          value: "$(params.releasePlanAdmission)"
         - name: "RELEASE_SERVICE_CONFIG"
-          value: '$(params.releaseServiceConfig)'
+          value: "$(params.releaseServiceConfig)"
         - name: "SNAPSHOT"
-          value: '$(params.snapshot)'
+          value: "$(params.snapshot)"
       script: |
         #!/usr/bin/env bash
         set -eo pipefail
@@ -172,10 +172,17 @@ spec:
         echo -n "$RELEASEPLAN_PATH" > "$(results.releasePlan.path)"
         get-resource "releaseplan" "${RELEASE_PLAN}" | tee "$(params.dataDir)/$RELEASEPLAN_PATH"
 
-        RELEASEPLANADMISSION_PATH="$(params.subdirectory)/release_plan_admission.json"
-        echo -n "$RELEASEPLANADMISSION_PATH" > "$(results.releasePlanAdmission.path)"
-        get-resource "releaseplanadmission" "${RELEASE_PLAN_ADMISSION}" \
-          | tee "$(params.dataDir)/$RELEASEPLANADMISSION_PATH"
+        # RELEASEPLANADMISSION_PATH="$(params.subdirectory)/release_plan_admission.json"
+        # echo -n "$RELEASEPLANADMISSION_PATH" > "$(results.releasePlanAdmission.path)"
+        # get-resource "releaseplanadmission" "${RELEASE_PLAN_ADMISSION}" \
+        #   | tee "$(params.dataDir)/$RELEASEPLANADMISSION_PATH"
+
+        if [ ! -z "${RELEASE_PLAN_ADMISSION}" ] ; then
+          RELEASEPLANADMISSION_PATH="$(params.subdirectory)/release_plan_admission.json"
+          echo -n "$RELEASEPLANADMISSION_PATH" > "$(results.releasePlanAdmission.path)"
+          get-resource "releaseplanadmission" "${RELEASE_PLAN_ADMISSION}" \
+            | tee "$(params.dataDir)/$RELEASEPLANADMISSION_PATH"
+        fi
 
         RELEASESERVICECONFIG_PATH="$(params.subdirectory)/release_service_config.json"
         echo -n "$RELEASESERVICECONFIG_PATH" > "$(results.releaseServiceConfig.path)"
@@ -228,8 +235,11 @@ spec:
 
         release_plan_result=$(get-resource "releaseplan" "${RELEASE_PLAN}" "{.spec.data}")
 
-        release_plan_admission_result=$(get-resource "releaseplanadmission" "${RELEASE_PLAN_ADMISSION}" \
+
+        if [ ! -z "${RELEASE_PLAN_ADMISSION}" ] ; then
+          release_plan_admission_result=$(get-resource "releaseplanadmission" "${RELEASE_PLAN_ADMISSION}" \
             "{.spec.data}")
+        fi
 
         # Merge collectors and Release keys. Release has higher priority
         merged_output=$(merge-json "$collectors_result" "$release_result")
@@ -237,28 +247,30 @@ spec:
         # Merge now with ReleasePlan keys. ReleasePlan has higher priority
         merged_output=$(merge-json "$merged_output" "$release_plan_result")
 
-        # Finally merge with ReleasePlanAdmission keys. ReleasePlanAdmission has higher priority
-        merged_output=$(merge-json "$merged_output" "$release_plan_admission_result")
+        if [ ! -z "${RELEASE_PLAN_ADMISSION}" ] ; then
+          # Finally merge with ReleasePlanAdmission keys. ReleasePlanAdmission has higher priority
+          merged_output=$(merge-json "$merged_output" "$release_plan_admission_result")
+        fi
 
         DATA_PATH="$(params.subdirectory)/data.json"
         echo -n "$DATA_PATH" > "$(results.data.path)"
         echo "$merged_output" | tee "$(params.dataDir)/$DATA_PATH"
 
         # get pipeline ref info
-        pipelineref=$(jq -c '.spec.pipeline.pipelineRef' \
-          "$(params.dataDir)/$(params.subdirectory)/release_plan_admission.json")
-        resolver=$(jq -r '.resolver // ""' <<< "${pipelineref}")
-        if [ "${resolver}" == "git" ] ; then
-          url=$(jq -r '.params[] | select(.name=="url") | .value' <<< "${pipelineref}")
-          revision=$(jq -r '.params[] | select(.name=="revision") | .value' <<< "${pipelineref}")
-          pathinrepo=$(jq -r '.params[] | select(.name=="pathInRepo") | .value' <<< "${pipelineref}")
-          orgrepo="${url#*/*/*/}"
-          org=$(echo "${orgrepo}" | cut -f1 -d/)
-          repo=$(echo "${orgrepo}" | cut -f2 -d/ | cut -d. -f1)
+        # pipelineref=$(jq -c '.spec.pipeline.pipelineRef' \
+        #   "$(params.dataDir)/$(params.subdirectory)/release_plan_admission.json")
+        # resolver=$(jq -r '.resolver // ""' <<< "${pipelineref}")
+        # if [ "${resolver}" == "git" ] ; then
+        #   url=$(jq -r '.params[] | select(.name=="url") | .value' <<< "${pipelineref}")
+        #   revision=$(jq -r '.params[] | select(.name=="revision") | .value' <<< "${pipelineref}")
+        #   pathinrepo=$(jq -r '.params[] | select(.name=="pathInRepo") | .value' <<< "${pipelineref}")
+        #   orgrepo="${url#*/*/*/}"
+        #   org=$(echo "${orgrepo}" | cut -f1 -d/)
+        #   repo=$(echo "${orgrepo}" | cut -f2 -d/ | cut -d. -f1)
 
-          sha=$(curl -s "https://api.github.com/repos/${org}/${repo}/commits/${revision}" | jq -r '.sha // ""')
+        #   sha=$(curl -s "https://api.github.com/repos/${org}/${repo}/commits/${revision}" | jq -r '.sha // ""')
 
-        fi
+        # fi
 
         org="${org:-unknown}"
         repo="${repo:-unknown}"

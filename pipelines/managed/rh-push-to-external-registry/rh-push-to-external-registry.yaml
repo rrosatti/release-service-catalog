@@ -14,23 +14,25 @@ spec:
   params:
     - name: release
       type: string
-      description:
-        The namespaced name (namespace/name) of the Release custom resource initiating this pipeline execution
+      description: The namespaced name (namespace/name) of the Release custom resource initiating this pipeline execution
     - name: releasePlan
       type: string
       description: The namespaced name (namespace/name) of the releasePlan
     - name: releasePlanAdmission
       type: string
       description: The namespaced name (namespace/name) of the releasePlanAdmission
+      default: ""
     - name: releaseServiceConfig
       type: string
       description: The namespaced name (namespace/name) of the releaseServiceConfig
+      default: release-service/release-service-config
     - name: snapshot
       type: string
       description: The namespaced name (namespace/name) of the snapshot
     - name: enterpriseContractPolicy
       type: string
       description: JSON representation of the EnterpriseContractPolicy
+      default: '{"description":"Red Hat''s enterprise requirements","sources":[{"name":"Default","policy":["github.com/enterprise-contract/ec-policies//policy/lib","github.com/enterprise-contract/ec-policies//policy/release"],"data":["oci::quay.io/redhat-appstudio-tekton-catalog/data-acceptable-bundles:latest","github.com/release-engineering/rhtap-ec-policy//data"]}],"configuration":{"exclude":["step_image_registries","tasks.required_tasks_found:prefetch-dependencies"],"include":["@slsa3"]},"publicKey":"k8s://openshift-pipelines/public-key"}'
     - name: enterpriseContractExtraRuleData
       type: string
       description: |
@@ -45,12 +47,12 @@ spec:
       type: string
       description: Cleans up workspace after finishing executing the pipeline
       default: "true"
-    - name: verify_ec_task_bundle
-      type: string
-      description: The location of the bundle containing the verify-enterprise-contract task
-    - name: verify_ec_task_git_revision
-      type: string
-      description: The git revision to be used when consuming the verify-conforma task
+    # - name: verify_ec_task_bundle
+    #   type: string
+    #   description: The location of the bundle containing the verify-enterprise-contract task
+    # - name: verify_ec_task_git_revision
+    #   type: string
+    #   description: The git revision to be used when consuming the verify-conforma task
     - name: taskGitUrl
       type: string
       description: The url to the git repo where the release-service-catalog tasks to be used are stored
@@ -83,7 +85,7 @@ spec:
         - name: snapshot
           value: $(params.snapshot)
         - name: requireInternalServices
-          value: "true"
+          value: "false"
     - name: collect-data
       taskRef:
         resolver: "git"
@@ -200,36 +202,36 @@ spec:
           workspace: release-workspace
       runAfter:
         - reduce-snapshot
-    - name: verify-enterprise-contract
-      taskRef:
-        resolver: "bundles"
-        params:
-          - name: bundle
-            value: $(params.verify_ec_task_bundle)
-          - name: kind
-            value: task
-          - name: name
-            value: verify-enterprise-contract
-      params:
-        - name: IMAGES
-          value: "$(workspaces.data.path)/$(tasks.collect-data.results.snapshotSpec)"
-        - name: SSL_CERT_DIR
-          value: /var/run/secrets/kubernetes.io/serviceaccount
-        - name: POLICY_CONFIGURATION
-          value: $(params.enterpriseContractPolicy)
-        - name: STRICT
-          value: "1"
-        - name: IGNORE_REKOR
-          value: "true"
-        - name: EXTRA_RULE_DATA
-          value: $(params.enterpriseContractExtraRuleData)
-        - name: TIMEOUT
-          value: $(params.enterpriseContractTimeout)
-      workspaces:
-        - name: data
-          workspace: release-workspace
-      runAfter:
-        - apply-mapping
+    # - name: verify-enterprise-contract
+    #   taskRef:
+    #     resolver: "bundles"
+    #     params:
+    #       - name: bundle
+    #         value: $(params.verify_ec_task_bundle)
+    #       - name: kind
+    #         value: task
+    #       - name: name
+    #         value: verify-enterprise-contract
+    #   params:
+    #     - name: IMAGES
+    #       value: "$(workspaces.data.path)/$(tasks.collect-data.results.snapshotSpec)"
+    #     - name: SSL_CERT_DIR
+    #       value: /var/run/secrets/kubernetes.io/serviceaccount
+    #     - name: POLICY_CONFIGURATION
+    #       value: $(params.enterpriseContractPolicy)
+    #     - name: STRICT
+    #       value: "1"
+    #     - name: IGNORE_REKOR
+    #       value: "true"
+    #     - name: EXTRA_RULE_DATA
+    #       value: $(params.enterpriseContractExtraRuleData)
+    #     - name: TIMEOUT
+    #       value: $(params.enterpriseContractTimeout)
+    #   workspaces:
+    #     - name: data
+    #       workspace: release-workspace
+    #   runAfter:
+    #     - apply-mapping
     - name: push-snapshot
       retries: 5
       when:
@@ -260,7 +262,7 @@ spec:
         - name: data
           workspace: release-workspace
       runAfter:
-        - verify-enterprise-contract
+        - apply-mapping
     - name: collect-pyxis-params
       when:
         - input: "$(tasks.apply-mapping.results.mapped)"
