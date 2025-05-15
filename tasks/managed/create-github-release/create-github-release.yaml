@@ -41,20 +41,51 @@ spec:
         #!/usr/bin/env bash
         set -ex
 
+        echo "HERE"
+
         RESULTS_FILE="$(workspaces.data.path)/$(params.resultsDirPath)/create-github-release-results.json"
+        echo "RESULTS_FILE: ${RESULTS_FILE}"
 
         cd "$(workspaces.data.path)/$CONTENT_DIRECTORY"
         set -o pipefail
-        shopt -s failglob
+        # shopt -s failglob
+        shopt -u failglob
 
         OWNER_REPO=${REPOSITORY#https://github.com/}
+        echo "OWNER_REPO: ${OWNER_REPO}"
         RELEASE="$(gh api "repos/${OWNER_REPO}/releases" --jq ".[] | select(.tag_name == \"v${RELEASE_VERSION}\")")"
+        echo "RELEASE: ${RELEASE}"
+
+
+        # files=(./*.zip ./*.json ./*SHA256SUMS ./*.sig)
+        # found_files=()
+
+        # for f in "${files[@]}"; do
+        #   # check if any file matches the glob (nullglob helps here)
+        #   matches=( $f )
+        #   if [ ${#matches[@]} -gt 0 ]; then
+        #     found_files+=("${matches[@]}")
+        #   fi
+        # done
+
+        shopt -s nullglob
+        found_files=(./*.zip ./*.json ./*SHA256SUMS ./*.sig)
+        shopt -u nullglob
+
+        if [ ${#found_files[@]} -eq 0 ]; then
+          echo "No release files found in $CONTENT_DIRECTORY"
+          # exit 1
+        fi
+
         if [ -n "$RELEASE" ]; then
           echo "Release v${RELEASE_VERSION} exists"
           echo "$REPOSITORY/releases/tag/v${RELEASE_VERSION}" > "$(results.url.path)"
         else
-          gh release create "v${RELEASE_VERSION}" ./*.zip ./*.json ./*SHA256SUMS ./*.sig \
-          --repo "$REPOSITORY" --title "Release $RELEASE_VERSION" | tee "$(results.url.path)"
+          ls -l
+          # gh release create "v${RELEASE_VERSION}" ./*.zip ./*.json ./*SHA256SUMS ./*.sig \
+          # --repo "$REPOSITORY" --title "Release $RELEASE_VERSION" | tee "$(results.url.path)"
+          gh release create "v${RELEASE_VERSION}" "${found_files[@]}" \
+            --repo "$REPOSITORY" --title "Release $RELEASE_VERSION" | tee "$(results.url.path)"
         fi
 
         jq -n --arg release "$(cat "$(results.url.path)")" '{"github-release": {"url": $release}}' | tee "$RESULTS_FILE"

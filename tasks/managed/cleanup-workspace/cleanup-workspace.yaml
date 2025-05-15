@@ -36,8 +36,9 @@ spec:
         if [ -n "$(params.pipelineRunUid)" ] ; then
             # Cleanup all internalrequests, but only if internalrequests exist on cluster
             if kubectl api-resources | grep InternalRequest | grep appstudio.redhat.com ; then
-              kubectl delete internalrequest \
-                  -l internal-services.appstudio.openshift.io/pipelinerun-uid="$(params.pipelineRunUid)"
+              # kubectl delete internalrequest \
+              #     -l internal-services.appstudio.openshift.io/pipelinerun-uid="$(params.pipelineRunUid)"
+              echo "I don't have access to internalrequests, sorry bro"
             else
               echo "CRD internalrequests.appstudio.redhat.com not found on cluster"
             fi

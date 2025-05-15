@@ -37,8 +37,7 @@ spec:
       description: "The kube secret to use to authenticate to GitHub, containing one key: token"
   steps:
     - name: collect-gh-params
-      image:
-        quay.io/konflux-ci/release-service-utils:e633d51cd41d73e4b3310face21bb980af7a662f
+      image: quay.io/konflux-ci/release-service-utils:e633d51cd41d73e4b3310face21bb980af7a662f
       computeResources:
         limits:
           memory: 128Mi
@@ -48,6 +47,8 @@ spec:
       script: |
         #!/usr/bin/env bash
         set -x
+
+        echo "HERE"
 
         DATA_FILE="$(workspaces.data.path)/$(params.dataPath)"
         if [ ! -f "${DATA_FILE}" ] ; then
@@ -62,6 +63,11 @@ spec:
         fi
 
         BINARIES_PATH="$(workspaces.data.path)/$(params.binariesPath)"
+
+        echo "Looking for files *_SHA256SUMS in $BINARIES_PATH"
+        echo "Files in binaries directory:"
+        ls -l "$BINARIES_PATH"
+
         RELEASE_VERSION=$(find "$BINARIES_PATH" -name '*_SHA256SUMS' \
           | sed 's/.*_\([^_]\+\)_SHA256SUMS$/\1/')
 

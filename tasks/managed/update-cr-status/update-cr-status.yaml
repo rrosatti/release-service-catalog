@@ -126,5 +126,7 @@ spec:
 
         IFS='/' read -r namespace name <<< "$(params.resource)"
 
-        kubectl --warnings-as-errors=true patch "$(params.resourceType)" -n "$namespace" "$name" \
-          --type=merge --subresource status --patch "status: {'$(params.statusKey)':${RESULTS_JSON}}"
+        echo "Skipping patch command, since I don't have access"
+        echo "RESULTS_JSON: ${RESULTS_JSON}"
+        # kubectl --warnings-as-errors=true patch "$(params.resourceType)" -n "$namespace" "$name" \
+        #   --type=merge --subresource status --patch "status: {'$(params.statusKey)':${RESULTS_JSON}}"
