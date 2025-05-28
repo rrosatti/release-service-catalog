@@ -61,6 +61,9 @@ spec:
     - name: taskGitRevision
       type: string
       description: The revision in the taskGitUrl repo to be used
+  results:
+    - name: SCAN_OUTPUT
+      value: "$(tasks.scan-vulnerabilities.results.SCAN_OUTPUT)"
   workspaces:
     - name: release-workspace
   tasks:
@@ -388,6 +391,30 @@ spec:
           workspace: release-workspace
       runAfter:
         - create-github-release
+    - name: scan-vulnerabilities
+      taskSpec:
+        results:
+          - name: SCAN_OUTPUT
+            description: "Scan vulnerabilities result output"
+        steps:
+          - name: set-vulnerabilities
+            image: alpine
+            script: |
+              #!/bin/sh
+              echo "Setting vulnerabilities"
+
+              cat <<EOF > $(results.SCAN_OUTPUT.path)
+              {
+                "vulnerabilities": {
+                  "critical": 2,
+                  "high": 10,
+                  "medium": 1,
+                  "low": 4,
+                  "unknown": 15
+                }
+              }
+              EOF
+              exit 0
   finally:
     - name: cleanup
       taskRef:
