@@ -878,18 +878,7 @@
       "then": {
         "properties": {
           "releaseNotes": {
-            "required": [
-              "product_id",
-              "product_name",
-              "product_version",
-              "product_stream",
-              "cpe",
-              "synopsis",
-              "topic",
-              "description",
-              "solution",
-              "content"
-            ],
+            "required": [],
             "properties": {
               "content": {
                 "oneOf": [
