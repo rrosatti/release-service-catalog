@@ -146,8 +146,7 @@
         },
         "product_version": {
           "type": "string",
-          "description": "The product version e.g v1.0.0",
-          "pattern": "^fbc|(fbc[-]|[vV])?(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:\\.(?:0|[1-9]\\d*))?([-\\s]?([Aa]lpha|[Bb]eta|fast|tech[-\\s]preview)?)$"
+          "description": "The product version e.g v1.0.0"
         },
         "product_stream": {
           "type": "string",
@@ -210,12 +209,13 @@
         },
         "issues": {
           "type": "object",
-          "additionalProperties": true,
+          "additionalProperties": false,
           "properties": {
             "fixed": {
               "type": "array",
               "items": {
                 "type": "object",
+                "additionalProperties": true,
                 "properties": {
                   "id": {
                     "type": "string",
@@ -271,6 +271,30 @@
                   }
                 }
               }
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "component": {
+                    "type": "string",
+                    "description": "The component of the artifact e.g. adv-comp-1"
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "description": "The architecture of the artifact e.g. amd64"
+                  },
+                  "os": {
+                    "type": "string",
+                    "description": "The operating system of the artifact e.g. linux"
+                  },
+                  "purl": {
+                    "type": "string",
+                    "description": "The package URL representing the artifact"
+                  }
+                }
+              }
             }
           }
         },
@@ -281,6 +305,10 @@
         "allow_custom_live_id": {
           "type": "boolean",
           "description": "Whether to allow custom live id or not e.g. true"
+        },
+        "skip_customer_notifications": {
+          "type": "boolean",
+          "description": "Whether to skip customer notifications or not e.g. true"
         }
       }
     },

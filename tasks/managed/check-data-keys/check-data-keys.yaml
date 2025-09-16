@@ -137,6 +137,9 @@ spec:
             "$(params.dataDir)/$(params.dataPath)" > "/tmp/systems"
         mv "/tmp/systems" "$(params.dataDir)/$(params.dataPath)"
 
+        echo "RRG"
+        echo "$(params.dataDir)/$(params.dataPath)"
+
         check-jsonschema --output-format=text --schemafile "/tmp/schema"  "$(params.dataDir)/$(params.dataPath)"
     - name: create-trusted-artifact
       computeResources:
