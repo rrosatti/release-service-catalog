@@ -5,25 +5,39 @@
     "systems": {
       "type": "array",
       "items": {
-        "type": "string",
-        "enum": [
-          "releaseNotes",
-          "cdn",
-          "fbc",
-          "sign",
-          "mrrc",
-          "github",
-          "contentGateway",
-          "pyxis",
-          "mapping"
-        ],
-        "description": "List of systems that are supported to be required in the data"
-      },
-      "requestType": {
-        "type": "string",
-        "description": "The request type to be used when requesting internal workloads",
-        "enum": ["internal-request", "internal-pipelinerun"]
+        "type": "object",
+        "properties": {
+          "systemName": {
+            "type": "string",
+            "description": "The name of the system",
+            "enum": [
+              "releaseNotes",
+              "cdn",
+              "fbc",
+              "sign",
+              "mrrc",
+              "github",
+              "contentGateway",
+              "pyxis",
+              "mapping",
+              "ootsign",
+              "conforma",
+              "intention"
+            ]
+          },
+          "dynamic": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, system is optional unless one of its fields are present in the data"
+          }
+        },
+        "required": ["systemName"]
       }
+    },
+    "requestType": {
+      "type": "string",
+      "description": "The request type to be used when requesting internal workloads",
+      "enum": ["internal-request", "internal-pipelinerun"]
     },
     "fbc": {
       "type": "object",
@@ -339,10 +353,7 @@
         "server": {
           "type": "string",
           "description": "The release Atlas server to push SBOMs to",
-          "enum": [
-            "stage",
-            "production"
-          ]
+          "enum": ["stage", "production"]
         },
         "atlas-sso-secret-name": {
           "type": "string",

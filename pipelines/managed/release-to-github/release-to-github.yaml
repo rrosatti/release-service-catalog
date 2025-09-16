@@ -61,6 +61,12 @@ spec:
     - name: taskGitRevision
       type: string
       description: The revision in the taskGitUrl repo to be used
+    - name: dataDir
+      description: The location where data will be stored
+      type: string
+      # to avoid tar extraction errors, we need to specify a subdirectory
+      # inside the volume.
+      default: "/var/workdir/release"
   results:
     - name: SCAN_OUTPUT
       value: "$(tasks.scan-vulnerabilities.results.SCAN_OUTPUT)"
@@ -153,9 +159,24 @@ spec:
         - name: schema
           value: $(params.taskGitUrl)/raw/$(params.taskGitRevision)/schema/dataKeys.json
         - name: systems
-          value:
-            - github
-            - sign
+          value: |
+            [
+              {"systemName": "github", "dynamic": false},
+              {"systemName": "sign", "dynamic": false},
+              {"systemName": "releaseNotes", "dynamic": false}
+            ]
+          # value:
+          #   - github
+          #   - sign
+          #   - releaseNotes
+        # - name: sourceDataArtifact
+        #   value: "$(tasks.populate-release-notes.results.sourceDataArtifact)"
+        # - name: ociStorage
+        #   value: $(params.ociStorage)
+        # - name: dataDir
+        #   value: $(params.dataDir)
+        # - name: trustedArtifactsDebug
+        #   value: "$(params.trustedArtifactsDebug)"
         - name: taskGitUrl
           value: "$(params.taskGitUrl)"
         - name: taskGitRevision
